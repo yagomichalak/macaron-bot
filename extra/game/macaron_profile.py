@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from external_cons import the_database
-from typing import Optional
+from typing import Optional, List, Union
 
 class MacaronProfileTable(commands.Cog):
     """ Class for managing the MacaronProfile table. """
@@ -93,6 +93,16 @@ class MacaronProfileTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
+    async def get_macaron_profile(self, user_id: int) -> List[Union[str, int]]:
+        """ Gets a Macaron Profile.
+        :param user_id: The ID of the user to get. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SELECT * FROM MacaronProfile WHERE user_id = %s", (user_id,))
+        profile = await mycursor.fetchone()
+        await mycursor.close()
+        return profile
+
     async def update_user_money(self, user_id: int, increment: Optional[int] = 0) -> None:
         """ Updates the user's money balance.
         :param user_id: The ID of the user to update.
@@ -123,7 +133,7 @@ class MacaronProfileTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
-    async def update_user(self, user_id: int, 
+    async def update_macaron_profile(self, user_id: int, 
         money: Optional[int] = None, games_played: Optional[int] = None, current_ts: Optional[int] = None) -> None:
         """ Updates the user status.
         :param user_id: The ID of the user to update.

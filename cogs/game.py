@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import Option, slash_command
 
-from typing import List, Optional, Any
+from typing import List, Dict, Optional, Any
 import os
 import asyncio
 import random
@@ -13,11 +13,16 @@ import string
 from fuzzywuzzy import fuzz
 from external_cons import the_drive
 from extra import utils
+from extra.game.macaron_profile import MacaronProfileTable
 
 server_id: int = int(os.getenv('SERVER_ID'))
 guild_ids: List[int] = [server_id]
 
-class Game(commands.Cog):
+game_cogs: List[commands.Cog] = [
+    MacaronProfileTable
+]
+
+class Game(*game_cogs):
     """ Category for the bot's main game. """
 
     def __init__(self, client: commands.Bot) -> None:
@@ -307,7 +312,10 @@ class Game(commands.Cog):
                 else:
                     #self.reproduced_languages = []
                     await self.txt.send(f"💪 **End of the game, you did it, {self.player.mention}!** 💪")
-                    await self.txt.send(f"**✅ {self.right_answers} | ❌ {self.wrong_answers}**")
+                    crumbs = await self.reward_user()
+                    await self.txt.send(f"""**
+                    You've got `{crumbs}` crumbs!
+                    ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
                     await self.reset_game_status()
 
     async def get_answer_text(self, text_path: str) -> str:
@@ -362,6 +370,31 @@ class Game(commands.Cog):
             await ctx.send("**Session ended!**")
         else:
             return await ctx.send(f"{author.mention}, you're not the one who's playing, nor is a staff member")
+
+    async def reward_user(self) -> int:
+        """ Rewards the user. """
+
+        current_ts = await utils.get_timestamp()
+        player: discord.Member = self.player
+        right_answers: int = self.right_answers
+        difficulty: str = self.difficulty
+
+        multipliers: Dict[str, int] = {
+            'A1': 1, 'A2': 3,
+            'B1': 5, 'B2':  10,
+            'C1': 15, 'C2': 20,
+        }
+
+        selected_multiplier = multipliers.get(difficulty.upper())
+        money_to_add: int = right_answers * selected_multiplier
+
+        if await self.get_macaron_profile(player.id):
+            await self.update_macaron_profile(player.id, money=money_to_add, games_played=1, last_time_played=current_ts)
+        else:
+            await self.insert_macaron_profile(player.id, money=money_to_add, games_played=1, last_time_played=current_ts)
+
+        return money_to_add
+
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
