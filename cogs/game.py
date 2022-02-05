@@ -395,6 +395,58 @@ class Game(*game_cogs):
 
         return money_to_add
 
+    @slash_command(name="profile", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _profile_slash_command(self, ctx,
+        member: Option(discord.Member, name="member", description="The member to check.", required=False)) -> None:
+        """ Checks someone's profile. """
+
+        if not member:
+            member = ctx.author
+        
+        await ctx.defer()
+        await self._profile_command_callback(ctx, member)
+
+    @commands.command(name="profile")
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _profile_command(self, ctx, member: Optional[discord.Member] = None) -> None:
+        """ Checks someone's profile.
+        :param member: The member to check. [Optional][Default = You] """
+
+        if not member:
+            member = ctx.author
+
+        await self._profile_command_callback(ctx, member)
+
+    async def _profile_command_callback(self, ctx, member: Optional[discord.Member]) -> None:
+        """ Callback for the profile command.
+        :param member: The member to check the profile. """
+
+        answer: discord.PartialMessageable = ctx.reply if isinstance(ctx, commands.Context) else ctx.respond
+        if member.bot:
+            return await answer("**You cannot use this on a bot!**")
+
+        if not (profile := await self.get_macaron_profile(member.id)):
+            if ctx.author.id != member.id:
+                return await answer("**This user doesn't have a profile!**")
+            await self.insert_macaron_profile(member.id)
+            profile = await self.get_macaron_profile(member.id)
+
+        last_time_played: str = 'Never' if not profile[3] else f"<t:{profile[3]}:R>"
+        current_time = await utils.get_time_now()
+
+        embed: discord.Embed = discord.Embed(
+            title=f"{member}'s Profile",
+            description=f"**Money:** {profile[1]} crumbs.\n" \
+                f"**Games played:** {profile[2]}\n" \
+                f"**Last time played:** {last_time_played}",
+                color=member.color,
+                timestamp=current_time
+        )
+        embed.set_thumbnail(url=member.display_avatar)
+        embed.set_footer(text=f"Requested by: {ctx.author}", icon_url=ctx.author.display_avatar)
+
+        await answer(embed=embed)
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
