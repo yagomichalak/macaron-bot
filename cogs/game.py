@@ -8,9 +8,11 @@ import asyncio
 import random
 import shutil
 import time
+import string
 
 from fuzzywuzzy import fuzz
 from external_cons import the_drive
+from extra import utils
 
 server_id: int = int(os.getenv('SERVER_ID'))
 guild_ids: List[int] = [server_id]
@@ -34,6 +36,7 @@ class Game(commands.Cog):
         self.right_answers: int = 0
         self.wrong_answers: int = 0
         self.answer: discord.PartialMessageable = None
+        self.session_id: str = None
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -123,6 +126,7 @@ class Game(commands.Cog):
         self.player = member
         self.difficulty = difficulty
         self.answer = ctx.respond
+        self.session_id = self.generate_session_id()
         await self._play_command_callback()
 
     @commands.command(name="play")
@@ -142,6 +146,7 @@ class Game(commands.Cog):
         self.player = member
         self.difficulty = difficulty
         self.answer = ctx.send
+        self.session_id = self.generate_session_id()
         await self._play_command_callback()
 
 
@@ -200,6 +205,7 @@ class Game(commands.Cog):
         self.right_answers = 0
         self.wrong_answers = 0
         self.answer = None
+        self.session_id = None
 
     async def compare_answers(self, player_answer: str, real_answer: str) -> int:
         """ Compares the player answer with the actual answer, and gives an
@@ -242,17 +248,20 @@ class Game(commands.Cog):
         """ Checks how correct is the user's answer.
         :param text_source: The actual answer. """
 
+        session_id: str = self.session_id
+
         if self.status == 'stop':
             self.status = 'normal'
             return
 
+        if not self.player or self.session_id != session_id:
+            return
+
         await self.txt.send(f"🔰**`Answer!` ({self.player.mention})**🔰 ")
+            
         def check(m):
             if m.author.id == self.player.id and m.channel.id == self.txt.id:
                 # Checks whether user is in the VC to answer the question
-                if m.content.startswith('mb!stop'):
-                    self.client.loop.create_task(self.stop_round(self.player.guild))
-                    return False
 
                 return True
 
@@ -283,12 +292,16 @@ class Game(commands.Cog):
 
         finally:
             # Checks if the member has remaining lives
+            if answer.startswith('mb!stop'):
+                return
+                
             if self.lives > 0:				
                 # Restarts the game if it's not the last round
                 if self.round < 10:
                     await self.txt.send(f"**New round in 10 seconds...**")
                     await asyncio.sleep(10)
-                    return await self._play_command_callback()
+                    if self.player and self.session_id == session_id:
+                        return await self._play_command_callback()
                 
                 # Otherwise it ends the game and shows the score of the member
                 else:
@@ -305,9 +318,50 @@ class Game(commands.Cog):
         with open(text_path, 'r', encoding="utf-8") as f:
             text_source: str = f.read()
 
-        return text_source
+        return text_source.strip()
 
-    async def stop_round(self) -> None: pass
+    def generate_session_id(self, length: Optional[int] = 18) -> str:
+        """ Generates a session ID.
+        :param length: The length of the session ID. [Default = 18] """
+
+        # Defines data
+        lower = string.ascii_lowercase
+        upper = string.ascii_uppercase
+        num = string.digits
+        symbols = string.punctuation
+
+        # Combines the data
+        all = lower + upper + num + symbols
+
+        # Uses random 
+        temp = random.sample(all,length)
+
+        # Create the session ID 
+        session_id = "".join(temp)
+        return session_id
+
+
+    @commands.command()
+    async def stop(self, ctx: commands.Context) -> None:
+        """ Stops the game. """
+
+        author: discord.Member = ctx.author
+
+        if not self.player:
+            return await ctx.send(f"**{author.mention}, I'm not even playing yet!**")
+
+        if self.player.id == author.id or await utils.is_allowed([]).predicate(ctx) or await utils.is_allowed_members([647452832852869120]).predicate(ctx):
+            await self.reset_game_status()
+            guild = ctx.message.guild
+            voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=guild)
+            if voice_client and voice_client.is_playing():
+                self.status = 'stop'
+                voice_client.stop()
+
+            self.status = 'normal'
+            await ctx.send("**Session ended!**")
+        else:
+            return await ctx.send(f"{author.mention}, you're not the one who's playing, nor is a staff member")
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
