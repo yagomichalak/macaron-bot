@@ -81,9 +81,6 @@ async def on_application_command_error(ctx, error) -> None:
     elif isinstance(error, commands.ChannelNotFound):
         await ctx.respond("**Channel not found!**")
 
-    elif isinstance(error, discord.app.commands.errors.CheckFailure):
-        await ctx.respond("**It looks like you can't run this command!**")
-
 
     print('=-'*20)
     print(f"ERROR: {error} | Class: {error.__class__} | Cause: {error.__cause__}")

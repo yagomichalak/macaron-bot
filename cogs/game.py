@@ -7,6 +7,7 @@ import os
 import asyncio
 import random
 import shutil
+import time
 
 from fuzzywuzzy import fuzz
 from external_cons import the_drive
@@ -158,7 +159,7 @@ class Game(commands.Cog):
             # Plays the song
             if not voice_client.is_playing():
                 audio_source = discord.FFmpegPCMAudio(f"{path}/audio.mp3")
-                text_source: str = self.get_answer_text(f"{path}/answer.txt")
+                text_source: str = await self.get_answer_text(f"{path}/answer.txt")
 
                 self.round += 1
                 embed = discord.Embed(
@@ -197,18 +198,18 @@ class Game(commands.Cog):
         :param difficulty: The difficulty mode for which to get the audio. """
 
         while True:
+            time.sleep(0.3)
             try:
                 path = './resources/audios'
-                if difficulty:
-                    difficulty_mode = random.choice(difficulty)
-                else:
+                difficulty_mode: str = difficulty
+                if not difficulty:
                     all_difficulties = os.listdir(path)
                     difficulty_mode = random.choice(all_difficulties)
+
 
                 all_audio_folders = os.listdir(f"{path}/{difficulty_mode}")
                 audio_folder = random.choice(all_audio_folders)
                 path = f"{path}/{difficulty_mode}/{audio_folder}"
-                print('Audio: ', audio_folder)
                 if not str(audio_folder) in self.reproduced_audios:
                     self.reproduced_audios.append(str(audio_folder))
                     return path, difficulty_mode, audio_folder
@@ -251,7 +252,7 @@ class Game(commands.Cog):
 
             accuracy = await self.compare_answers(answer, text_source)
             if accuracy >= 75:
-                await self.txt.send(f"🎉🍞 **You got {accuracy}% `right`, {player.mention}! 🍞🎉\nThe answer was:** ```{text_source}```")
+                await self.txt.send(f"🎉🍞 **You got it {accuracy}% `right`, {player.mention}! 🍞🎉\nThe answer was:** ```{text_source}```")
                 # self.right_answers += 1
                 # await self.audio('resources/SFX/right_answer.mp3', self.txt)
 
