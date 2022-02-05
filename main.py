@@ -99,6 +99,42 @@ async def on_ready() -> None:
 
     print('Bot is online!')
 
+@client.command(hidden=True)
+@commands.has_permissions(administrator=True)
+async def load(ctx, extension: str = None):
+    """ Loads a cog.
+    :param extension: The cog. """
+
+    if not extension:
+        return await ctx.send("**Inform the cog!**")
+    client.load_extension(f'cogs.{extension}')
+    return await ctx.send(f"**{extension} loaded!**", delete_after=3)
+
+
+@client.command(hidden=True)
+@commands.has_permissions(administrator=True)
+async def unload(ctx, extension: str = None):
+    """ Unloads a cog.
+    :param extension: The cog. """
+
+    if not extension:
+        return await ctx.send("**Inform the cog!**")
+    client.unload_extension(f'cogs.{extension}')
+    return await ctx.send(f"**{extension} unloaded!**", delete_after=3)
+
+
+@client.command(hidden=True)
+@commands.has_permissions(administrator=True)
+async def reload(ctx, extension: str = None):
+    """ Reloads a cog.
+    :param extension: The cog. """
+
+    if not extension:
+        return await ctx.send("**Inform the cog!**")
+    client.unload_extension(f'cogs.{extension}')
+    client.load_extension(f'cogs.{extension}')
+    return await ctx.send(f"**{extension} reloaded!**", delete_after=3)
+
 for filename in os.listdir('./cogs'):
     if filename.endswith('.py'):
         client.load_extension(f"cogs.{filename[:-3]}")

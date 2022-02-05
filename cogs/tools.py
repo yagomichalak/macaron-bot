@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord.utils import escape_mentions
 
 import inspect
 import io
@@ -126,6 +127,26 @@ class Tools(commands.Cog):
         """ Show the latency. """
 
         await ctx.send(f"**:ping_pong: Pong! {round(self.client.latency * 1000)}ms.**")
+
+    @commands.command(aliases=['al', 'alias'])
+    async def aliases(self, ctx, *, cmd: str =  None):
+        """ Shows some information about commands and categories. 
+        :param cmd: The command. """
+
+        if not cmd:
+            return await ctx.send("**Please, informe one command!**")
+
+        cmd = escape_mentions(cmd)
+        if command := self.client.get_command(cmd.lower()):
+            embed = discord.Embed(title=f"Command: {command}", color=ctx.author.color, timestamp=ctx.message.created_at)
+            aliases = [alias for alias in command.aliases]
+
+            if not aliases:
+                return await ctx.send("**This command doesn't have any aliases!**")
+            embed.description = '**Aliases: **' + ', '.join(aliases)
+            return await ctx.send(embed=embed)
+        else:
+            await ctx.send(f"**Invalid parameter! It is neither a command nor a cog!**")
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
