@@ -4,6 +4,8 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
+from extra.customerrors import CommandNotReady
+
 client = commands.Bot(command_prefix='mb!')
 
 
@@ -22,6 +24,9 @@ async def on_command_error(ctx, error) -> None:
 
     elif isinstance(error, commands.CommandOnCooldown):
         await ctx.send(error)
+
+    elif isinstance(error, CommandNotReady):
+        await ctx.respond(error)
 
     elif isinstance(error, commands.MissingAnyRole):
         role_names = [f"**{str(discord.utils.get(ctx.guild.roles, id=role_id))}**" for role_id in error.missing_roles]
@@ -58,6 +63,9 @@ async def on_application_command_error(ctx, error) -> None:
         await ctx.respond("**You're not the bot's owner!**")
 
     elif isinstance(error, commands.CommandOnCooldown):
+        await ctx.respond(error)
+
+    elif isinstance(error, CommandNotReady):
         await ctx.respond(error)
 
     elif isinstance(error, commands.errors.CheckAnyFailure):

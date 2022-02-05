@@ -16,8 +16,9 @@ class Game(commands.Cog):
         self.client = client
         self.difficulty_modes: List[str] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
         self.player = None
-        self.mode = 'Idle'
+        self.mode = None
         self.difficulty = None
+        self.status = 'normal'
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -66,9 +67,9 @@ class Game(commands.Cog):
         """ Clears the game status. """
 
         self.player = None
-        self.mode = 'Idle'
+        self.mode = None
         self.difficulty = None
-
+        self.status = 'normal'
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
