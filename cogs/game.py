@@ -30,6 +30,10 @@ class Game(commands.Cog):
         self.txt: discord.TextChannel = None
         self.reproduced_audios: List[str] = []
         self.round = 0
+        self.lives: int = 3
+        self.right_answers: int = 0
+        self.wrong_answers: int = 0
+        self.answer: discord.PartialMessageable = None
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -55,9 +59,9 @@ class Game(commands.Cog):
                 pass
 
         all_folders = {
-            "audios": "1gyuXiVjB2shqgW4VRdqbJVldo9C0T79v",
+            "Audio Files": "1IRQVO7kDXIVsbRnEoJbSNZSV0TRTYqYG",
         }
-        categories = ['audios']
+        categories = ['Audio Files']
         for category in categories:
             try:
                 os.makedirs(f'./resources/{category}')
@@ -83,7 +87,6 @@ class Game(commands.Cog):
 
         files = drive.ListFile({'q': "'%s' in parents and trashed=false" % folder_id}).GetList()
         download_path = f'./{path}/{folder}'
-
         for file in files:
             try:
                 #print(f"\033[34mItem name:\033[m \033[33m{file['title']:<35}\033[m | \033[34mID: \033[m\033[33m{file['id']}\033[m")
@@ -114,7 +117,13 @@ class Game(commands.Cog):
         if difficulty.upper() not in self.difficulty_modes:
             return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
-        await self._play_command_callback(ctx, member, difficulty)
+        if self.player:
+            return await ctx.respond(f"**There's already someone playing with the bot, {member.mention}!**")
+
+        self.player = member
+        self.difficulty = difficulty
+        self.answer = ctx.respond
+        await self._play_command_callback()
 
     @commands.command(name="play")
     @commands.has_permissions(administrator=True)
@@ -127,35 +136,37 @@ class Game(commands.Cog):
         if difficulty.upper() not in self.difficulty_modes:
             return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
-        await self._play_command_callback(ctx, member, difficulty)
+        if self.player:
+            return await ctx.send(f"**There's already someone playing with the bot, {member.mention}!**")
+
+        self.player = member
+        self.difficulty = difficulty
+        self.answer = ctx.send
+        await self._play_command_callback()
 
 
-    async def _play_command_callback(self, ctx, player: discord.Member, difficulty: str) -> None:
-        """ Callback for the game's play command.
-        :param player: The player of the game.
-        :param difficulty: The difficulty mode. (A1-C2)"""
+    async def _play_command_callback(self) -> None:
+        """ Callback for the game's play command. """
 
-        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
-
-        server_bot: discord.Member = player.guild.get_member(self.client.user.id)
+        server_bot: discord.Member = self.player.guild.get_member(self.client.user.id)
         if (bot_voice := server_bot.voice) and bot_voice.mute:
             await server_bot.edit(mute=False)
         
-        voice = player.voice
-        voice_client = player.guild.voice_client
+        voice = self.player.voice
+        voice_client = self.player.guild.voice_client
 
-        voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=player.guild)
+        voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=self.player.guild)
 
         # Checks if the bot is in a voice channel
         if not voice_client:
             await voice.channel.connect()
             await asyncio.sleep(1)
-            voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=player.guild)
+            voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=self.player.guild)
 
         # Checks if the bot is in the same voice channel that the user
         if voice and voice.channel == voice_client.channel:
             # Gets a random language audio
-            path, difficulty_mode, audio_folder = self.get_random_audio(difficulty)
+            path, difficulty_mode, audio_folder = self.get_random_audio(self.difficulty)
             # Plays the song
             if not voice_client.is_playing():
                 audio_source = discord.FFmpegPCMAudio(f"{path}/audio.mp3")
@@ -168,15 +179,15 @@ class Game(commands.Cog):
                     color=discord.Color.green()
                 )
                 await self.txt.send(embed=embed)
-                voice_client.play(audio_source, after=lambda e: self.client.loop.create_task(self.get_response(player, text_source)))
+                voice_client.play(audio_source, after=lambda e: self.client.loop.create_task(self.get_response(text_source)))
 
         else:
             # (to-do) send a message to a specific channel
             await self.txt.send("**The player left the voice channel, so it's game over!**")
-            await self.reset_bot_status()
-        await answer(f"**Let's play the game, {ctx.author.mention}!**")
+            await self.reset_game_status()
+        await self.answer(f"**Let's play the game, {self.player.mention}!**")
 
-    async def clear_game_status(self) -> None:
+    async def reset_game_status(self) -> None:
         """ Clears the game status. """
 
         self.player = None
@@ -184,6 +195,11 @@ class Game(commands.Cog):
         self.difficulty = None
         self.status = 'normal'
         self.reproduced_audios = []
+        self.round = 0
+        self.lives = 3
+        self.right_answers = 0
+        self.wrong_answers = 0
+        self.answer = None
 
     async def compare_answers(self, player_answer: str, real_answer: str) -> int:
         """ Compares the player answer with the actual answer, and gives an
@@ -200,7 +216,7 @@ class Game(commands.Cog):
         while True:
             time.sleep(0.3)
             try:
-                path = './resources/audios'
+                path = './resources/Audio Files'
                 difficulty_mode: str = difficulty
                 if not difficulty:
                     all_difficulties = os.listdir(path)
@@ -210,30 +226,32 @@ class Game(commands.Cog):
                 all_audio_folders = os.listdir(f"{path}/{difficulty_mode}")
                 audio_folder = random.choice(all_audio_folders)
                 path = f"{path}/{difficulty_mode}/{audio_folder}"
-                if not str(audio_folder) in self.reproduced_audios:
-                    self.reproduced_audios.append(str(audio_folder))
-                    return path, difficulty_mode, audio_folder
-                else:
-                    continue
+
+                self.reproduced_audios.append(str(audio_folder))
+                return path, difficulty_mode, audio_folder
+                # if not str(audio_folder) in self.reproduced_audios:
+                #     self.reproduced_audios.append(str(audio_folder))
+                #     return path, difficulty_mode, audio_folder
+                # else:
+                #     continue
             except Exception:
                 print('Try harder...')
                 continue
 
-    async def get_response(self, player: discord.Member, text_source: str) -> Any:
+    async def get_response(self, text_source: str) -> Any:
         """ Checks how correct is the user's answer.
-        :param player: The player who answered.
         :param text_source: The actual answer. """
 
         if self.status == 'stop':
             self.status = 'normal'
             return
 
-        await self.txt.send(f"🔰**`Answer!` ({player.mention})**🔰 ")
+        await self.txt.send(f"🔰**`Answer!` ({self.player.mention})**🔰 ")
         def check(m):
-            if m.author.id == player.id and m.channel.id == self.txt.id:
+            if m.author.id == self.player.id and m.channel.id == self.txt.id:
                 # Checks whether user is in the VC to answer the question
                 if m.content.startswith('mb!stop'):
-                    self.client.loop.create_task(self.stop_round(player.guild))
+                    self.client.loop.create_task(self.stop_round(self.player.guild))
                     return False
 
                 return True
@@ -241,9 +259,9 @@ class Game(commands.Cog):
         try:
             answer = await self.client.wait_for('message', timeout=30, check=check)
         except asyncio.TimeoutError:
-            await self.txt.send(f"**{player.mention}, you took too long to answer! (-1 ❤️)")
-            # self.wrong_answers += 1
-            # self.lives -= 1
+            await self.txt.send(f"**{self.player.mention}, you took too long to answer! (-1 ❤️)")
+            self.wrong_answers += 1
+            self.lives -= 1
             # await self.audio('resources/SFX/wrong_answer.mp3', channel)
         else:
             answer = answer.content
@@ -251,18 +269,33 @@ class Game(commands.Cog):
                 return
 
             accuracy = await self.compare_answers(answer, text_source)
-            if accuracy >= 75:
-                await self.txt.send(f"🎉🍞 **You got it {accuracy}% `right`, {player.mention}! 🍞🎉\nThe answer was:** ```{text_source}```")
-                # self.right_answers += 1
+            if accuracy >= 90:
+                await self.txt.send(f"🎉🍞 **You got it {accuracy}% `right`, {self.player.mention}! 🍞🎉\nThe answer was:** ```{text_source}```")
+                self.right_answers += 1
                 # await self.audio('resources/SFX/right_answer.mp3', self.txt)
 
             # Otherwise it's a wrong answer
             else:
-                await self.txt.send(f"❌ **You got it `wrong`, {player.mention}! ❌ (`{accuracy}% accuracy`)\nThe answer was:** ```{text_source}```")
-                # self.wrong_answers += 1
-                # self.lives -= 1
+                await self.txt.send(f"❌ **You got it `wrong`, {self.player.mention}! ❌ (`{accuracy}% accuracy`)\nThe answer was:** ```{text_source}```")
+                self.wrong_answers += 1
+                self.lives -= 1
                 # await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
 
+        finally:
+            # Checks if the member has remaining lives
+            if self.lives > 0:				
+                # Restarts the game if it's not the last round
+                if self.round < 10:
+                    await self.txt.send(f"**New round in 10 seconds...**")
+                    await asyncio.sleep(10)
+                    return await self._play_command_callback()
+                
+                # Otherwise it ends the game and shows the score of the member
+                else:
+                    #self.reproduced_languages = []
+                    await self.txt.send(f"💪 **End of the game, you did it, {self.player.mention}!** 💪")
+                    await self.txt.send(f"**✅ {self.right_answers} | ❌ {self.wrong_answers}**")
+                    await self.reset_game_status()
 
     async def get_answer_text(self, text_path: str) -> str:
         """ Gets the answer text.
