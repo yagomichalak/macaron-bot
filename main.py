@@ -77,6 +77,14 @@ async def on_application_command_error(ctx, error) -> None:
         await ctx.respond("**It looks like you can't run this command!**")
 
 
+    print('=-'*20)
+    print(f"ERROR: {error} | Class: {error.__class__} | Cause: {error.__cause__}")
+    print('=-'*20)
+
+    if error_log_channel := ctx.guild.get_channel(int(os.getenv('ERROR_CHANNEL_ID'))):
+        await error_log_channel.send(error)
+
+
 @client.event
 async def on_ready() -> None:
     """ Tells when the bot is ready to run. """
