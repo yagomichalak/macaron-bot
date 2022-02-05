@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import Option, slash_command
 
-from typing import List, Dict, Optional, Any
+from typing import List, Dict, Optional, Any, Union
 import os
 import asyncio
 import random
@@ -446,6 +446,47 @@ class Game(*game_cogs):
         embed.set_thumbnail(url=member.display_avatar)
         embed.set_footer(text=f"Requested by: {ctx.author}", icon_url=ctx.author.display_avatar)
 
+        await answer(embed=embed)
+
+    @slash_command(name="samples", guild_ids=guild_ids)
+    async def _samples_slash_command(self, ctx: discord.ApplicationContext) -> None:
+        """ Shows how many audio samples and languages we currently have in The Language Jungle game. """
+
+        await ctx.defer()
+
+        await self._samples_command_callback(ctx)
+
+    @commands.command(name="samples", aliases=['audios', 'smpls', 'langs'])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _samples_command(self, ctx: commands.Context) -> None:
+        """ Shows how many audio samples and languages we currently have in The Language Jungle game. """
+
+        await self._samples_command_callback(ctx)
+
+    async def _samples_command_callback(self, ctx: Union[commands.Context, discord.ApplicationContext]) -> None:
+        """ Shows how many audio samples we currently have in the game. (Callback) """
+
+        answer: discord.PartialMessageable = None
+        if isinstance(ctx, commands.Context):
+            answer = ctx.send
+        else:
+            answer = ctx.respond
+
+        path = './resources/Audio Files'
+        difficulties = [folder for folder in os.listdir(path)]
+        audios = [1 for difficulty in difficulties for _ in os.listdir(f"{path}/{difficulty}")]
+
+        current_time = await utils.get_time_now()
+
+        embed = discord.Embed(
+            title="__Samples__",
+            description=f"We currently have **`{sum(audios)}`** different audio samples grouped into **`{len(difficulties)}`** different difficulties respectively.",
+            color=ctx.author.color,
+            timestamp=current_time
+        )
+        embed.set_author(name=self.client.user, icon_url=self.client.user.display_avatar)
+        embed.set_thumbnail(url=ctx.guild.icon.url)
+        embed.set_footer(text=f"Requested by: {ctx.author}", icon_url=ctx.author.display_avatar)
         await answer(embed=embed)
 
 def setup(client: commands.Bot) -> None:
