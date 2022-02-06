@@ -14,12 +14,13 @@ from fuzzywuzzy import fuzz
 from external_cons import the_drive
 from extra import utils
 from extra.game.macaron_profile import MacaronProfileTable
+from extra.game.user_items import UserItemsTable, UserItemsSystem
 
 server_id: int = int(os.getenv('SERVER_ID'))
 guild_ids: List[int] = [server_id]
 
 game_cogs: List[commands.Cog] = [
-    MacaronProfileTable
+    MacaronProfileTable, UserItemsTable, UserItemsSystem
 ]
 
 class Game(*game_cogs):
@@ -56,7 +57,7 @@ class Game(*game_cogs):
     @commands.command()
     @commands.has_permissions(administrator=True)
     async def audio_update(self, ctx: Optional[commands.Context] = None, rall: str = 'no') -> None:
-        """ Downloads all shop images from the GoogleDrive and stores in the bot's folder.
+        """ Downloads all audios from the GoogleDrive and stores in the bot's folder.
         :param ctx: The context of the command. [Optional]
         :param rall: Whether the it should remove all folders before downloading files. """
 
@@ -71,6 +72,54 @@ class Game(*game_cogs):
             "SFX": "1lXLzALvyDo4eoyxzmXTeZWmlOU829F7r",
         }
         categories = ['Audio Files', "SFX"]
+        for category in categories:
+            try:
+                os.makedirs(f'./resources/{category}')
+                print(f"{category} folder made!")
+            except FileExistsError:
+                pass
+
+        drive = await the_drive()
+
+        for folder, folder_id in all_folders.items():
+
+            await self.download_recursively(drive, 'resources', folder, folder_id)
+
+        if ctx:
+            await ctx.send("**Download update complete!**")
+
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def image_update(self, ctx: Optional[commands.Context] = None, rall: str = 'no') -> None:
+        """ Downloads all shop images from the GoogleDrive and stores in the bot's folder.
+        :param ctx: The context of the command. [Optional]
+        :param rall: Whether the it should remove all folders before downloading files. """
+
+        if rall.lower() == 'yes':
+            try:
+                shutil.rmtree('./resources')
+            except Exception:
+                pass
+
+        all_folders = {
+            "acessories_1": "1Hd-79WiwtnQh-JYVI-y86DBozlmGrGab",
+            "backgrounds": "1buwsKzDe1e6b4njfx9Nw-djGLyksnmJ8",
+            "bb_base": "12NRW-ipOzXKU1HE4Z8RhbuCXEGDY-om5",
+            "dual_hands": "1ItlzRT0gv65_izWBitT4SfR1r-drD2d4",
+            "effects": "1pMlAE2nSGRc5Y-U2XIVg8c2WUv73Gv6E",
+            "eyes": "1NcZwzltffgya5w9ijAWI8GyRAsX7LT47",
+            "face_furniture": "1SpOSfiVpciWxztUZS3L_XmV28gf-w_33",
+            "facial_hair": "1Bq-obguLHv5sIM4oBpMOmlGwOJWChF5n",
+            "hats": "1kIKGvGFjoX5fwhQkvOKJ2AA4kgLFpMuo",
+            "left_hands": "1ffFevrYq4FxPlEjIQ31fhqkIyTywr-41",
+            "mouths": "1vcmsB7PI_a1s0jDxtHW9huYXv_5LWjYX",
+            "right_hands": "1r4pga4OKpouQNKd95VWeO4FPCR7VzvsL",
+        }
+        categories = [
+            'acessories_1', 'backgrounds', 'bb_base', 
+            'dual_hands', 'effects', 'eyes', 'face_furniture', 
+            'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+        ]
         for category in categories:
             try:
                 os.makedirs(f'./resources/{category}')
