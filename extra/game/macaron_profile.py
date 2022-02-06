@@ -134,40 +134,39 @@ class MacaronProfileTable(commands.Cog):
         await mycursor.close()
 
     async def update_macaron_profile(self, user_id: int, 
-        money: Optional[int] = None, games_played: Optional[int] = None, current_ts: Optional[int] = None) -> None:
+        money: Optional[int] = None, games_played: Optional[int] = None, last_time_played: Optional[int] = None) -> None:
         """ Updates the user status.
         :param user_id: The ID of the user to update.
         :param money: The increment value for the money field.
         :param games_played: The icnrement value for the games played field.
-        :param current_ts: The current timestamp. """
+        :param last_time_played: The current timestamp. """
 
         mycursor, db = await the_database()
 
-        if money and games_played and current_ts:
+        if money and games_played and last_time_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET money = money + %s, games_played = games_played + %s,
                 last_time_played = %s WHERE user_id = %s
-                """, (money, games_played, current_ts, user_id))
+                """, (money, games_played, last_time_played, user_id))
 
         elif money and games_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET money = money + %s, 
-                games_played = games_played + %s, WHERE user_id = %s
+                games_played = games_played + %s WHERE user_id = %s
                 """, (money, games_played, user_id))
         
-        elif money and current_ts:
+        elif money and last_time_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET money = money + %s, 
-                last_time_played = %s, WHERE user_id = %s
-                """, (money, current_ts, user_id))
+                last_time_played = %s WHERE user_id = %s
+                """, (money, last_time_played, user_id))
 
-        elif games_played and current_ts:
+        elif games_played and last_time_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET games_played = games_played + %s, 
-                last_time_played = %s, WHERE user_id = %s
-                """, (money, games_played, user_id))
+                last_time_played = %s WHERE user_id = %s
+                """, (games_played, last_time_played, user_id))
 
-        await mycursor.execute("UPDATE MacaronProfile SET last_time_played = last_time_played + %s WHERE user_id = %s", (current_ts, user_id))
         await db.commit()
         await mycursor.close()
 

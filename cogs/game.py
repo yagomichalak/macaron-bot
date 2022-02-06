@@ -195,7 +195,7 @@ class Game(*game_cogs):
             # (to-do) send a message to a specific channel
             await self.txt.send("**The player left the voice channel, so it's game over!**")
             await self.reset_game_status()
-        await self.answer(f"**Let's play the game, {self.player.mention}!**")
+        await self.answer(f"**Let's play, {self.player.mention}!**")
 
     async def reset_game_status(self) -> None:
         """ Clears the game status. """
@@ -300,19 +300,20 @@ class Game(*game_cogs):
 
             # Otherwise it's a wrong answer
             else:
-                await self.txt.send(f"❌ **You got it `wrong`, {self.player.mention}! ❌ (`{accuracy}% accuracy`)\nThe answer was:** ```{text_source}```")
+                await self.txt.send(f"❌ **You got it `wrong`, {self.player.mention}! ❌ (`{accuracy}% accuracy`) (-1 ❤️)\nThe answer was:** ```{text_source}```")
                 self.wrong_answers += 1
                 self.lives -= 1
                 # await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
 
         finally:
+            current_ts = await utils.get_timestamp()
             # Checks if the member has remaining lives
             if answer and answer.startswith('mb!stop'):
                 return
                 
             if self.lives > 0:				
                 # Restarts the game if it's not the last round
-                if self.round < 10:
+                if self.round < 3:
                     await self.txt.send(f"**New round in 10 seconds...**")
                     await asyncio.sleep(10)
                     if self.player and self.session_id == session_id:
@@ -327,6 +328,10 @@ class Game(*game_cogs):
                     You've got `{crumbs}` crumbs!
                     ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
                     await self.reset_game_status()
+            else:
+                await self.txt.send(f"**You lost the game, {self.player.mention}!** (0 ❤️)")
+                await self.update_macaron_profile(self.player.id, games_played=1, last_time_played=current_ts)
+                await self.reset_game_status()
 
     async def get_answer_text(self, text_path: str) -> str:
         """ Gets the answer text.
@@ -386,17 +391,16 @@ class Game(*game_cogs):
 
         current_ts = await utils.get_timestamp()
         player: discord.Member = self.player
-        right_answers: int = self.right_answers
         difficulty: str = self.difficulty
 
-        multipliers: Dict[str, int] = {
-            'A1': 1, 'A2': 3,
-            'B1': 5, 'B2':  10,
-            'C1': 15, 'C2': 20,
+        multipliers: Dict[str, Tuple[int, int]] = {
+            'A1': (1, 3), 'A2': (3, 5),
+            'B1': (5, 8), 'B2':  (8, 10),
+            'C1': (10, 12), 'C2': (10, 12),
         }
 
-        selected_multiplier = multipliers.get(difficulty.upper())
-        money_to_add: int = right_answers * selected_multiplier
+        m_range_x, m_range_y = multipliers.get(difficulty.upper())
+        money_to_add = random.randint(m_range_x, m_range_y)
 
         if await self.get_macaron_profile(player.id):
             await self.update_macaron_profile(player.id, money=money_to_add, games_played=1, last_time_played=current_ts)
