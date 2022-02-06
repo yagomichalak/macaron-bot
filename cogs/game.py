@@ -344,14 +344,14 @@ class Game(*game_cogs):
                 return
 
             accuracy = await self.compare_answers(answer, text_source)
-            if accuracy >= 90:
-                await self.txt.send(f"🎉🍞 **You got it {accuracy}% `right`, {self.player.mention}! 🍞🎉\nThe answer was:** ```{text_source}```")
+            if accuracy >= 95:
+                await self.txt.send(f"✅ You got it right, {self.player.mention}!\n**The answer was:** {text_source}")
                 self.right_answers += 1
                 await self.audio('resources/SFX/right_answer.mp3', self.txt)
 
             # Otherwise it's a wrong answer
             else:
-                await self.txt.send(f"❌ **You got it `wrong`, {self.player.mention}! ❌ (`{accuracy}% accuracy`) (-1 ❤️)\nThe answer was:** ```{text_source}```")
+                await self.txt.send(f"❌ You got it wrong, {self.player.mention}! ({accuracy}% accuracy)\n**The answer was:** {text_source}")
                 self.wrong_answers += 1
                 self.lives -= 1
                 await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
