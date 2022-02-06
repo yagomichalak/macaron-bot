@@ -6,6 +6,82 @@ from typing import List, Optional, Any, Union, Dict
 from PIL import ImageDraw, ImageFont, Image
 from extra import utils
 
+class RegisteredItemsTable(commands.Cog):
+    """ Class for managing the RegisteredItems table in the database. """
+
+    def __init__(self, client: commands.Bot) -> None:
+        """ Class init method. """
+
+        self.client = client
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def create_table_registered_items(self, ctx) -> None:
+        """ Creates the RegisteredItems table in the database. """
+
+        member: discord.Member = ctx.author
+        if await self.check_table_registered_items_exists():
+            return await ctx.send(f"**Table `RegisteredItems` already exists, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("""
+            CREATE TABLE RegisteredItems (
+                image_name VARCHAR(50) NOT NULL,
+                item_type VARCHAR(15) NOT NULL,
+                item_name VARCHAR(30) NOT NULL,
+                item_price INT NOT NULL,
+                message_ref BIGINT DEFAULT NULL,
+                reaction_ref VARCHAR(50) DEFAULT NULL,
+                PRIMARY KEY(image_name)
+            ) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
+        """)
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully created the `RegisteredItems` table, {member.mention}!**")
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def drop_table_registered_items(self, ctx) -> None:
+        """ Dropss the RegisteredItems table in the database. """
+
+        member: discord.Member = ctx.author
+        if not await self.check_table_registered_items_exists():
+            return await ctx.send(f"**Table `RegisteredItems` doesn't exist, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DROP RegisteredItems")
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully dropped the `RegisteredItems` table, {member.mention}!**")
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def reset_table_registered_items(self, ctx) -> None:
+        """ Resets the RegisteredItems table in the database. """
+
+        member: discord.Member = ctx.author
+        if not await self.check_table_registered_items_exists():
+            return await ctx.send(f"**Table `RegisteredItems` doesn't exist yet, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM RegisteredItems")
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully reset the `RegisteredItems` table, {member.mention}!**")
+
+
+    async def check_table_registered_items_exists(self) -> bool:
+        """ Checks whether the RegisteredItems table exists. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SHOW TABLE STATUS LIKE 'RegisteredItems'")
+        exists = await mycursor.fetchone()
+        await mycursor.close()
+        if exists:
+            return True
+        else:
+            return False
+
 class UserItemsTable(commands.Cog):
     """ Class for managing the UserItems table in the database. """
 
@@ -31,8 +107,9 @@ class UserItemsTable(commands.Cog):
                 enable TINYINT(1) DEFAULT 0, 
                 item_type VARCHAR(15) NOT NULL,
                 image_name VARCHAR(50) NOT NULL,
-                PRIMARY KEY(user_id, item_name)
-            )
+                PRIMARY KEY(user_id, item_name),
+                CONSTRAINT fk_ui_image_name FOREIGN KEY (image_name) REFERENCES RegisteredItems (image_name) ON DELETE CASCADE ON UPDATE CASCADE
+            ) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
         """)
         await db.commit()
         await mycursor.close()
@@ -104,14 +181,14 @@ class UserItemsSystem(commands.Cog):
         if not member:
             member = ctx.author
 
-        file_path: str = await self.create_user_custom_character(member)
+        file_path: str = await self.create_user_custom_character(ctx, member)
         await ctx.send(file=discord.File(file_path, filename="custom_profile.png"))
         try:
             os.remove(file_path)
         except:
             pass
 
-    async def create_user_custom_character(self, member: Union[discord.Member, discord.User]) -> str:
+    async def create_user_custom_character(self, ctx, member: Union[discord.Member, discord.User]) -> str:
         """ Creates the custom user character image.
         :param member: The member for whom to create the image. """
 
@@ -119,40 +196,40 @@ class UserItemsSystem(commands.Cog):
         # small = ImageFont.truetype("media/fonts/built titling sb.ttf", 45)
 
         # Open images
+        async with ctx.typing():
+            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds'))
+            bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base'))
+            eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes'))
+            mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths'))
+            facil_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair'))
+            face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture'))
+            hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats'))
+            left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands'))
+            right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands'))
+            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands'))
+            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'acessories_1'))
+            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects'))
+            
+            # Pastes all item images
+            background.paste(bb_base, (0, 0), bb_base)
+            background.paste(eyes, (0, 0), eyes)
+            background.paste(mouths, (0, 0), mouths)
+            background.paste(facil_hair, (0, 0), facil_hair)
+            background.paste(face_furniture, (0, 0), face_furniture)
+            background.paste(hats, (0, 0), hats)
+            background.paste(left_hands, (0, 0), left_hands)
+            background.paste(right_hands, (0, 0), right_hands)
+            background.paste(dual_hands, (0, 0), dual_hands)
+            background.paste(accessories_1, (0, 0), accessories_1)
+            background.paste(effects, (0, 0), effects)
 
-        background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds'))
-        bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base'))
-        eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes'))
-        mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths'))
-        facil_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair'))
-        face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture'))
-        hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats'))
-        left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands'))
-        right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands'))
-        dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands'))
-        accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'acessories_1'))
-        effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects'))
-        
-        # Pastes all item images
-        background.paste(bb_base, (0, 0), bb_base)
-        background.paste(eyes, (0, 0), eyes)
-        background.paste(mouths, (0, 0), mouths)
-        background.paste(facil_hair, (0, 0), facil_hair)
-        background.paste(face_furniture, (0, 0), face_furniture)
-        background.paste(hats, (0, 0), hats)
-        background.paste(left_hands, (0, 0), left_hands)
-        background.paste(right_hands, (0, 0), right_hands)
-        background.paste(dual_hands, (0, 0), dual_hands)
-        background.paste(accessories_1, (0, 0), accessories_1)
-        background.paste(effects, (0, 0), effects)
+            # pfp = await utils.get_user_pfp(member)
+            # background.paste(sloth, (0, 0), sloth)
 
-        # pfp = await utils.get_user_pfp(member)
-        # background.paste(sloth, (0, 0), sloth)
-
-        # Saves the image
-        file_path = f'media/temporary/character_{member.id}.png'
-        background.save(file_path, 'png', quality=90)
-        return file_path
+            # Saves the image
+            file_path = f'media/temporary/character_{member.id}.png'
+            background.save(file_path, 'png', quality=90)
+            return file_path
 
     async def get_user_specific_item_type(self, user_id: int, item_type: str) -> str:
         """ Gets a random item of a specific type from the user.
@@ -164,7 +241,7 @@ class UserItemsSystem(commands.Cog):
         spec_type_items = await mycursor.fetchone()
         await mycursor.close()
         if spec_type_items and spec_type_items[1]:
-            return f'./resources/{item_type}/{spec_type_items[1]}'
+            return f'./resources/{item_type}/{spec_type_items[4]}'
 
         else:
             return f'./resources/{item_type}/default.png'
