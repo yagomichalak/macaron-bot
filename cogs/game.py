@@ -86,7 +86,7 @@ class Game(*game_cogs):
             await self.download_recursively(drive, 'resources', folder, folder_id)
 
         if ctx:
-            await ctx.send("**Download update complete!**")
+            await ctx.send("**Download audio update complete!**")
 
     @commands.command()
     @commands.has_permissions(administrator=True)
@@ -134,7 +134,7 @@ class Game(*game_cogs):
             await self.download_recursively(drive, 'resources', folder, folder_id)
 
         if ctx:
-            await ctx.send("**Download update complete!**")
+            await ctx.send("**Download image update complete!**")
 
     async def download_recursively(self, drive, path: str, folder: str, folder_id: int) -> None:
         """ Downloads recursively through all folders and files form the GoogleDrive.
