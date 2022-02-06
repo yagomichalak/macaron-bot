@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import Option, slash_command
 
-from typing import List, Dict, Optional, Any, Union, Tuple
+from typing import List, Dict, Optional, Any, Union, Tuple, Callable
 import os
 import asyncio
 import random
@@ -68,8 +68,9 @@ class Game(*game_cogs):
 
         all_folders = {
             "Audio Files": "1IRQVO7kDXIVsbRnEoJbSNZSV0TRTYqYG",
+            "SFX": "1lXLzALvyDo4eoyxzmXTeZWmlOU829F7r",
         }
-        categories = ['Audio Files']
+        categories = ['Audio Files', "SFX"]
         for category in categories:
             try:
                 os.makedirs(f'./resources/{category}')
@@ -135,7 +136,7 @@ class Game(*game_cogs):
         await self._play_command_callback()
 
     @commands.command(name="play")
-    @commands.has_permissions(administrator=True)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def _play_command(self, ctx, difficulty: str = 'A1') -> None:
         """ Plays the game.
         :param difficulty: The difficulty mode in which to play the game. [Default = A1] """
@@ -246,13 +247,13 @@ class Game(*game_cogs):
                 audio_folder = random.choice(all_audio_folders)
                 path = f"{path}/{difficulty_mode}/{audio_folder}"
 
-                self.reproduced_audios.append(str(audio_folder))
-                return path, difficulty_mode, audio_folder
-                # if not str(audio_folder) in self.reproduced_audios:
-                #     self.reproduced_audios.append(str(audio_folder))
-                #     return path, difficulty_mode, audio_folder
-                # else:
-                #     continue
+                # self.reproduced_audios.append(str(audio_folder))
+                # return path, difficulty_mode, audio_folder
+                if not str(audio_folder) in self.reproduced_audios:
+                    self.reproduced_audios.append(str(audio_folder))
+                    return path, difficulty_mode, audio_folder
+                else:
+                    continue
             except Exception:
                 print('Try harder...')
                 continue
@@ -286,7 +287,7 @@ class Game(*game_cogs):
             await self.txt.send(f"**{self.player.mention}, you took too long to answer! (-1 ❤️)**")
             self.wrong_answers += 1
             self.lives -= 1
-            # await self.audio('resources/SFX/wrong_answer.mp3', channel)
+            await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
         else:
             answer = answer.content
             if not answer:
@@ -296,14 +297,14 @@ class Game(*game_cogs):
             if accuracy >= 90:
                 await self.txt.send(f"🎉🍞 **You got it {accuracy}% `right`, {self.player.mention}! 🍞🎉\nThe answer was:** ```{text_source}```")
                 self.right_answers += 1
-                # await self.audio('resources/SFX/right_answer.mp3', self.txt)
+                await self.audio('resources/SFX/right_answer.mp3', self.txt)
 
             # Otherwise it's a wrong answer
             else:
                 await self.txt.send(f"❌ **You got it `wrong`, {self.player.mention}! ❌ (`{accuracy}% accuracy`) (-1 ❤️)\nThe answer was:** ```{text_source}```")
                 self.wrong_answers += 1
                 self.lives -= 1
-                # await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
+                await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
 
         finally:
             current_ts = await utils.get_timestamp()
@@ -502,6 +503,25 @@ class Game(*game_cogs):
         embed.set_thumbnail(url=ctx.guild.icon.url)
         embed.set_footer(text=f"Requested by: {ctx.author}", icon_url=ctx.author.display_avatar)
         await answer(embed=embed)
+
+    async def audio(self, audio: str, channel: discord.VoiceChannel, func: Optional[Callable[[Any], Any]] = None) -> None:
+        """ Reproduces an audio by informing a path and a channel.
+        :param audio: The name of the audio.
+        :param channel: The voice channel in which the bot will reproduce the audio in.
+        :param func: What the bot will do after the audio is done. """
+
+        voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=channel.guild)
+        if not voice_client:
+            await channel.connect()
+            voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=channel.guild)
+
+        audio_source = discord.FFmpegPCMAudio(audio)
+        if not voice_client.is_playing():
+            if not func:
+                voice_client.play(audio_source, after=lambda e: print('finished'))
+            else:
+                voice_client.play(audio_source, after=lambda e: self.client.loop.create_task(func()))
+
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
