@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord import Option, slash_command
 
-from typing import List, Dict, Optional, Any, Union
+from typing import List, Dict, Optional, Any, Union, Tuple
 import os
 import asyncio
 import random
@@ -218,6 +218,14 @@ class Game(*game_cogs):
         :param player: The player answer:
         :param real_answer: The real answer. """
 
+        variants: Tuple[str] = ('.', ';', ':', ',', '!', '?')
+
+        if player_answer.endswith(variants):
+            player_answer = player_answer[:-1]
+
+        if real_answer.endswith(variants):
+            real_answer = real_answer[:-1]
+
         return fuzz.ratio(player_answer.lower(), real_answer.lower())
 
     def get_random_audio(self, difficulty: str = None) -> str:
@@ -270,10 +278,12 @@ class Game(*game_cogs):
 
                 return True
 
+        answer: str = None
+
         try:
             answer = await self.client.wait_for('message', timeout=30, check=check)
         except asyncio.TimeoutError:
-            await self.txt.send(f"**{self.player.mention}, you took too long to answer! (-1 ❤️)")
+            await self.txt.send(f"**{self.player.mention}, you took too long to answer! (-1 ❤️)**")
             self.wrong_answers += 1
             self.lives -= 1
             # await self.audio('resources/SFX/wrong_answer.mp3', channel)
@@ -297,7 +307,7 @@ class Game(*game_cogs):
 
         finally:
             # Checks if the member has remaining lives
-            if answer.startswith('mb!stop'):
+            if answer and answer.startswith('mb!stop'):
                 return
                 
             if self.lives > 0:				
