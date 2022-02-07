@@ -410,18 +410,18 @@ class UserItemsSystem(commands.Cog):
 
         # Open images
         async with ctx.typing():
-            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds'))
-            bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base'))
-            eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes'))
-            mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths'))
-            facil_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair'))
-            face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture'))
-            hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats'))
-            left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands'))
-            right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands'))
-            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands'))
-            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'acessories_1'))
-            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects'))
+            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds')).convert('RGBA')
+            bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base')).convert('RGBA')
+            eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes')).convert('RGBA')
+            mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths')).convert('RGBA')
+            facil_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair')).convert('RGBA')
+            face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture')).convert('RGBA')
+            hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats')).convert('RGBA')
+            left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands')).convert('RGBA')
+            right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands')).convert('RGBA')
+            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
+            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'acessories_1')).convert('RGBA')
+            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
             
             # Pastes all item images
             background.paste(bb_base, (0, 0), bb_base)
@@ -454,7 +454,7 @@ class UserItemsSystem(commands.Cog):
         spec_type_items = await mycursor.fetchone()
         await mycursor.close()
         if spec_type_items and spec_type_items[1]:
-            return f'./resources/{item_type}/{spec_type_items[4]}'
+            return f'./resources/{item_type}/{spec_type_items[1]}'
 
         else:
             return f'./resources/{item_type}/default.png'
