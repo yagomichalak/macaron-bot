@@ -7,7 +7,7 @@ load_dotenv()
 
 from extra.customerrors import CommandNotReady
 
-client = commands.Bot(command_prefix='mb!', intents=discord.Intents.all(), help_command=None, case_insensitive=True)
+client = commands.Bot(command_prefix='m!', intents=discord.Intents.all(), help_command=None, case_insensitive=True)
 
 
 @client.event
