@@ -200,7 +200,7 @@ class RegisteredItemsSystem(commands.Cog):
 
         registered_items = await self.get_registered_items()
         formatted_registered_items = [
-            f"**{regitem[2]}**: `{regitem[3]}` curbs. (**{regitem[1]}**)" for regitem in registered_items
+            f"**{regitem[2]}**: `{regitem[3]}` crumbs. (**{regitem[1]}**)" for regitem in registered_items
         ]
         items_text = 'No items registered.' if not registered_items else '\n'.join(formatted_registered_items)
         current_time = await utils.get_time_now()
@@ -214,6 +214,23 @@ class RegisteredItemsSystem(commands.Cog):
         embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
 
         await ctx.respond(embed=embed)
+
+    @slash_command(name="unregister_item", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.has_permissions(administrator=True)
+    async def _unregister_item_slash_command(self, ctx,
+        name: Option(str, name="name", description="The item name.", required=True)
+    ) -> None:
+        """ Registers an item for people to buy it. """
+
+        member: discord.Member = ctx.author
+
+        
+        if not await self.get_registered_item(name=name):
+            return await ctx.respond(f"**This item is not even registered, {member.mention}!**")
+        
+        await self.delete_registered_item(name)
+        await ctx.respond(f"**Successfully deleted the registered item `{name}`, {member.mention}!**")
 
 
 class UserItemsTable(commands.Cog):
