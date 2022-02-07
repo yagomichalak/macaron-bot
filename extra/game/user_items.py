@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
+from discord.utils import escape_mentions
 from discord import slash_command, Option
+
 from external_cons import the_database
 import os
 from typing import List, Optional, Any, Union, Dict
@@ -85,6 +87,71 @@ class RegisteredItemsTable(commands.Cog):
         else:
             return False
 
+    async def insert_registered_item(self, 
+        name: str, kind: str, price: int, image_name: str, message_id: Optional[int] = None, emoji: Optional[str] = None) -> None:
+        """ Inserts a Registered Item.
+        :param name: The name of the item.
+        :param kind: The type of the item.
+        :param price: The price of the item.
+        :param image_name: The item image name.
+        :param message_id: The ID of the messsage from which you'll buy the item. [Optional]
+        :param emoji: The emoji you'll use to buy the item. [Optional] """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("""
+            INSERT INTO RegisteredItems (
+                item_name, item_type, item_price, image_name, message_ref, reaction_ref
+            ) VALUES (%s, %s, %s, %s, %s, %s)
+        """, (name, kind, price, image_name, message_id, emoji))
+        await db.commit()
+        await mycursor.close()
+
+    async def get_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> List[Union[str, int]]:
+        """ Gets a registered item.
+        :param name: The name of the item to get. [Optional]
+        :param image_name: The name of the item image to get. [Optional] """
+
+        mycursor, _ = await the_database()
+
+        if name and image_name:
+            await mycursor.execute("SELECT * FROM RegisteredItems WHERE item_name = LOWER(%s) OR image_name = LOWER(%s)", (name.lower(), image_name.lower()))
+        elif name:
+            await mycursor.execute("SELECT * FROM RegisteredItems WHERE item_name = LOWER(%s)", (name.lower(),))
+        elif image_name:
+            await mycursor.execute("SELECT * FROM RegisteredItems WHERE image_name = LOWER(%s)", (image_name.lower(),))
+
+        registered_item = await mycursor.fetchone()
+        await mycursor.close()
+        return registered_item
+
+    async def get_registered_items(self) -> List[List[Union[str, int]]]:
+        """ Gets all registered items. """
+
+        mycursor, _ = await the_database()
+
+        await mycursor.execute("SELECT * FROM RegisteredItems")
+        registered_items = await mycursor.fetchall()
+        await mycursor.close()
+
+        return registered_items
+
+    async def delete_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> None:
+        """ Deletes a registered item.
+        :param name: The name of the item to delete. [Optional]
+        :param image_name: The name of the item image to delete. [Optional] """
+
+        mycursor, db = await the_database()
+
+        if name and image_name:
+            await mycursor.execute("DELETE FROM RegisteredItems WHERE item_name = LOWER(%s) AND image_name = LOWER(%s)", (name.lower(), image_name.lower()))
+        elif name:
+            await mycursor.execute("DELETE FROM RegisteredItems WHERE item_name = LOWER(%s)", (name.lower(),))
+        elif image_name:
+            await mycursor.execute("DELETE FROM RegisteredItems WHERE image_name = LOWER(%s)", (image_name.lower(),))
+
+        await db.commit()
+        await mycursor.close()
+
 class RegisteredItemsSystem(commands.Cog):
     """ Class for the RegisteredItems system. """
 
@@ -147,6 +214,69 @@ class RegisteredItemsSystem(commands.Cog):
         embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
 
         await ctx.respond(embed=embed)
+
+    @commands.command(aliases=['equip'])
+    # @commands.cooldown(1, 5, commands.BucketType.user)
+    async def equip_item(self, ctx, item_name: str = None) -> None:
+        """ Equips an item.
+        :param item_name: The name of the item to equip. """
+
+        member: discord.Member = ctx.author
+        if not item_name:
+            return await ctx.send(f"**Please, inform an item to equip, {member.mention}!**")
+
+        item_name = escape_mentions(item_name)
+
+        if not (user_item := await self.get_user_item(member.id, item_name.lower())):
+            return await ctx.send(f"**You don't have this item to equip, {member.mention}!**")
+
+        if user_item[2]:
+            return await ctx.send(f"**This item is already equipped, {member.mention}!**")
+
+        if not await self.check_user_can_change_item_state(member.id, item_name.title(), True):
+            return await ctx.send(f"**You already have a __{user_item[3]}__ item equipped!**")
+
+        await self.update_item_equipped(member.id, item_name, True)
+        await ctx.send(f"**{member.mention} equipped __{item_name.title()}__!**")
+
+    @commands.command(aliases=["unequip"])
+    async def unequip_item(self, ctx, *, item_name: str = None) -> None:
+        """ Unequips an item.
+        :param item_name: The item to unequip """
+
+        member: discord.Member = ctx.author
+        item_name = escape_mentions(item_name)
+
+        if not item_name:
+            return await ctx.send("**Inform an item to unequip!**")
+
+        if not await self.get_user_item(member.id, item_name):
+            return await ctx.send(f"**You don't have this item, {member.mention}!**")
+
+        if not await self.check_user_can_change_item_state(member.id, item_name.lower()):
+            return await ctx.send(f"**The item __{item_name}__ is already unequipped!**")
+
+        await self.update_item_equipped(member.id, item_name)
+        await ctx.send(f"**{member.mention} unequipped __{item_name.title()}__!**")
+
+    async def check_user_can_change_item_state(self, user_id: int, item_name: str, enable: bool = False) -> bool:
+        """ Checks whether a user can equip or unequip a specific item.
+        :param user_id: The ID of the user to check.
+        :param item_name: The name of the item.
+        :param enable: Whether to check if you can equip or unequip. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute(
+            """SELECT * FROM UserItems WHERE user_id = %s and item_name = LOWER(%s) and enable = %s
+            """, (user_id, item_name.lower(), enable))
+        item = await mycursor.fetchone()
+        await mycursor.close()
+
+        if item:
+            return True
+        else:
+            return False
+
 
 class UserItemsTable(commands.Cog):
     """ Class for managing the UserItems table in the database. """
@@ -224,70 +354,57 @@ class UserItemsTable(commands.Cog):
         else:
             return False
 
-    async def insert_registered_item(self, 
-        name: str, kind: str, price: int, image_name: str, message_id: Optional[int] = None, emoji: Optional[str] = None) -> None:
-        """ Inserts a Registered Item.
-        :param name: The name of the item.
-        :param kind: The type of the item.
-        :param price: The price of the item.
-        :param image_name: The item image name.
-        :param message_id: The ID of the messsage from which you'll buy the item. [Optional]
-        :param emoji: The emoji you'll use to buy the item. [Optional] """
+    async def insert_user_item(self, user_id: int, item_name: str, item_type: str, image_name: str) -> None:
+        """ Inserts an item to the user inventory.
+        :param user_id: The ID of the user owner of the item.
+        :param item_name: The item name.
+        :param item_type: The item type.
+        :param image_name: The item image name. """
 
         mycursor, db = await the_database()
         await mycursor.execute("""
-            INSERT INTO RegisteredItems (
-                item_name, item_type, item_price, image_name, message_ref, reaction_ref
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-        """, (name, kind, price, image_name, message_id, emoji))
+            INSERT INTO UserItems (
+                user_id, item_name, item_type, image_name
+            ) VALUES (%s, %s, %s, %s)
+        """, (user_id, item_name, item_type, image_name))
         await db.commit()
         await mycursor.close()
 
-    async def get_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> List[Union[str, int]]:
-        """ Gets a registered item.
-        :param name: The name of the item to get. [Optional]
-        :param image_name: The name of the item image to get. [Optional] """
+    async def get_user_item(self, user_id: int, item_name: str) -> List[Union[int, str]]:
+        """ Gets an item from the user inventory.
+        :param user_id: The ID of the user owner of the item.
+        :param item_name: The name of the item to get. """
 
         mycursor, _ = await the_database()
-
-        if name and image_name:
-            await mycursor.execute("SELECT * FROM RegisteredItems WHERE item_name = %s OR image_name = %s", (name, image_name))
-        elif name:
-            await mycursor.execute("SELECT * FROM RegisteredItems WHERE item_name = %s", (name,))
-        elif image_name:
-            await mycursor.execute("SELECT * FROM RegisteredItems WHERE image_name = %s", (image_name,))
-
-        registered_item = await mycursor.fetchone()
+        await mycursor.execute("SELECT * FROM UserItems WHERE user_id = %s AND item_name = LOWER(%s)", (user_id, item_name))
+        user_item = await mycursor.fetchone()
         await mycursor.close()
-        return registered_item
+        return user_item
 
-    async def get_registered_items(self) -> List[List[Union[str, int]]]:
-        """ Gets all registered items. """
+    async def get_user_items(self, user_id: int) -> List[List[Union[int, str]]]:
+        """ Gets an item from the user inventory.
+        :param user_id: The ID of the user owner of the item. """
 
         mycursor, _ = await the_database()
-
-        await mycursor.execute("SELECT * FROM RegisteredItems")
-        registered_items = await mycursor.fetchall()
+        await mycursor.execute("SELECT * FROM UserItems WHERE user_id = %s", (user_id,))
+        user_items = await mycursor.fetchall()
         await mycursor.close()
+        return user_items
 
-        return registered_items
+    async def update_item_equipped(self, user_id: int, item_name: str, enable: Optional[bool] = False) -> None:
+        """ Updates the user item's equipped state.
+        :param user_id: The ID of the user.
+        :param item_name: The item to update.
+        :param enable: Whether it's to equip or unequip. [Optional][Default = False] """
 
-    async def delete_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> None:
-        """ Deletes a registered item.
-        :param name: The name of the item to delete. [Optional]
-        :param image_name: The name of the item image to delete. [Optional] """
+        enable = 1 if enable else 0
 
         mycursor, db = await the_database()
-
-        if name and image_name:
-            await mycursor.execute("DELETE FROM RegisteredItems WHERE item_name = %s AND image_name = %s", (name, image_name))
-        elif name:
-            await mycursor.execute("DELETE FROM RegisteredItems WHERE item_name = %s", (name,))
-        elif image_name:
-            await mycursor.execute("DELETE FROM RegisteredItems WHERE image_name = %s", (image_name,))
-
+        await mycursor.execute("UPDATE UserItems SET enable = %s WHERE user_id = %s, item_name = LOWER(%s)", (enable, user_id, item_name.lower()))
         await db.commit()
         await mycursor.close()
+
+
 
 class UserItemsSystem(commands.Cog):
     """ Class for UserItems system. """
