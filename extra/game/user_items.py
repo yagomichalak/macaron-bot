@@ -443,8 +443,8 @@ class UserItemsSystem(commands.Cog):
             # Pastes all item images
             background.paste(bb_base, (0, 0), bb_base)
             background.paste(eyes, (0, 0), eyes)
-            background.paste(mouths, (0, 0), mouths)
             background.paste(facil_hair, (0, 0), facil_hair)
+            background.paste(mouths, (0, 0), mouths)
             background.paste(face_furniture, (0, 0), face_furniture)
             background.paste(hats, (0, 0), hats)
             background.paste(left_hands, (0, 0), left_hands)
