@@ -62,16 +62,19 @@ class Game(*game_cogs):
         :param ctx: The context of the command. [Optional]
         :param rall: Whether the it should remove all folders before downloading files. """
 
-        if rall.lower() == 'yes':
-            try:
-                shutil.rmtree('./resources')
-            except Exception:
-                pass
 
         all_folders = {
             "Audio Files": "1IRQVO7kDXIVsbRnEoJbSNZSV0TRTYqYG",
             "SFX": "1lXLzALvyDo4eoyxzmXTeZWmlOU829F7r",
-        }
+            }
+
+        if rall.lower() == 'yes':
+            for folder in all_folders:
+                try:
+                    shutil.rmtree(f'./resources/{folder}')
+                except Exception:
+                    pass
+
         categories = ['Audio Files', "SFX"]
         for category in categories:
             try:
@@ -96,11 +99,6 @@ class Game(*game_cogs):
         :param ctx: The context of the command. [Optional]
         :param rall: Whether the it should remove all folders before downloading files. """
 
-        if rall.lower() == 'yes':
-            try:
-                shutil.rmtree('./resources')
-            except Exception:
-                pass
 
         all_folders = {
             "acessories_1": "1Hd-79WiwtnQh-JYVI-y86DBozlmGrGab",
@@ -116,6 +114,14 @@ class Game(*game_cogs):
             "mouths": "1vcmsB7PI_a1s0jDxtHW9huYXv_5LWjYX",
             "right_hands": "1r4pga4OKpouQNKd95VWeO4FPCR7VzvsL",
         }
+
+        if rall.lower() == 'yes':
+            for folder in all_folders:
+                try:
+                    shutil.rmtree(f'./resources/{folder}')
+                except Exception:
+                    pass
+
         categories = [
             'acessories_1', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
