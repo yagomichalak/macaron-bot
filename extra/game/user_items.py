@@ -114,11 +114,11 @@ class RegisteredItemsTable(commands.Cog):
         mycursor, _ = await the_database()
 
         if name and image_name:
-            await mycursor.execute("SELECT * FROM RegisteredItems WHERE item_name = LOWER(%s) OR image_name = LOWER(%s)", (name.lower(), image_name.lower()))
+            await mycursor.execute("SELECT * FROM RegisteredItems WHERE LOWER(item_name) = LOWER(%s) OR LOWER(image_name) = LOWER(%s)", (name, image_name))
         elif name:
-            await mycursor.execute("SELECT * FROM RegisteredItems WHERE item_name = LOWER(%s)", (name.lower(),))
+            await mycursor.execute("SELECT * FROM RegisteredItems WHERE LOWER(item_name) = LOWER(%s)", (name,))
         elif image_name:
-            await mycursor.execute("SELECT * FROM RegisteredItems WHERE image_name = LOWER(%s)", (image_name.lower(),))
+            await mycursor.execute("SELECT * FROM RegisteredItems WHERE LOWER(image_name) = LOWER(%s)", (image_name,))
 
         registered_item = await mycursor.fetchone()
         await mycursor.close()
@@ -143,11 +143,11 @@ class RegisteredItemsTable(commands.Cog):
         mycursor, db = await the_database()
 
         if name and image_name:
-            await mycursor.execute("DELETE FROM RegisteredItems WHERE item_name = LOWER(%s) AND image_name = LOWER(%s)", (name.lower(), image_name.lower()))
+            await mycursor.execute("DELETE FROM RegisteredItems WHERE LOWER(item_name) = LOWER(%s) AND LOWER(image_name) = LOWER(%s)", (name, image_name))
         elif name:
-            await mycursor.execute("DELETE FROM RegisteredItems WHERE item_name = LOWER(%s)", (name.lower(),))
+            await mycursor.execute("DELETE FROM RegisteredItems WHERE LOWER(item_name) = LOWER(%s)", (name,))
         elif image_name:
-            await mycursor.execute("DELETE FROM RegisteredItems WHERE image_name = LOWER(%s)", (image_name.lower(),))
+            await mycursor.execute("DELETE FROM RegisteredItems WHERE LOWER(image_name) = LOWER(%s)", (image_name,))
 
         await db.commit()
         await mycursor.close()
@@ -198,11 +198,11 @@ class RegisteredItemsSystem(commands.Cog):
 
         member: discord.Member = ctx.author
 
-        registerd_items = await self.get_registered_items()
+        registered_items = await self.get_registered_items()
         formatted_registered_items = [
-            f"**{regitem[2]}**: `{regitem[3]}` curbs. (**{regitem[1]}**)" for regitem in registerd_items
+            f"**{regitem[2]}**: `{regitem[3]}` curbs. (**{regitem[1]}**)" for regitem in registered_items
         ]
-        items_text = 'No items registered.' if not registerd_items else '\n'.join(formatted_registered_items)
+        items_text = 'No items registered.' if not registered_items else '\n'.join(formatted_registered_items)
         current_time = await utils.get_time_now()
 
         embed = discord.Embed(
@@ -214,68 +214,6 @@ class RegisteredItemsSystem(commands.Cog):
         embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
 
         await ctx.respond(embed=embed)
-
-    @commands.command(aliases=['equip'])
-    # @commands.cooldown(1, 5, commands.BucketType.user)
-    async def equip_item(self, ctx, item_name: str = None) -> None:
-        """ Equips an item.
-        :param item_name: The name of the item to equip. """
-
-        member: discord.Member = ctx.author
-        if not item_name:
-            return await ctx.send(f"**Please, inform an item to equip, {member.mention}!**")
-
-        item_name = escape_mentions(item_name)
-
-        if not (user_item := await self.get_user_item(member.id, item_name.lower())):
-            return await ctx.send(f"**You don't have this item to equip, {member.mention}!**")
-
-        if user_item[2]:
-            return await ctx.send(f"**This item is already equipped, {member.mention}!**")
-
-        if not await self.check_user_can_change_item_state(member.id, item_name.title(), True):
-            return await ctx.send(f"**You already have a __{user_item[3]}__ item equipped!**")
-
-        await self.update_item_equipped(member.id, item_name, True)
-        await ctx.send(f"**{member.mention} equipped __{item_name.title()}__!**")
-
-    @commands.command(aliases=["unequip"])
-    async def unequip_item(self, ctx, *, item_name: str = None) -> None:
-        """ Unequips an item.
-        :param item_name: The item to unequip """
-
-        member: discord.Member = ctx.author
-        item_name = escape_mentions(item_name)
-
-        if not item_name:
-            return await ctx.send("**Inform an item to unequip!**")
-
-        if not await self.get_user_item(member.id, item_name):
-            return await ctx.send(f"**You don't have this item, {member.mention}!**")
-
-        if not await self.check_user_can_change_item_state(member.id, item_name.lower()):
-            return await ctx.send(f"**The item __{item_name}__ is already unequipped!**")
-
-        await self.update_item_equipped(member.id, item_name)
-        await ctx.send(f"**{member.mention} unequipped __{item_name.title()}__!**")
-
-    async def check_user_can_change_item_state(self, user_id: int, item_name: str, enable: bool = False) -> bool:
-        """ Checks whether a user can equip or unequip a specific item.
-        :param user_id: The ID of the user to check.
-        :param item_name: The name of the item.
-        :param enable: Whether to check if you can equip or unequip. """
-
-        mycursor, _ = await the_database()
-        await mycursor.execute(
-            """SELECT * FROM UserItems WHERE user_id = %s and item_name = LOWER(%s) and enable = %s
-            """, (user_id, item_name.lower(), enable))
-        item = await mycursor.fetchone()
-        await mycursor.close()
-
-        if item:
-            return True
-        else:
-            return False
 
 
 class UserItemsTable(commands.Cog):
@@ -376,7 +314,7 @@ class UserItemsTable(commands.Cog):
         :param item_name: The name of the item to get. """
 
         mycursor, _ = await the_database()
-        await mycursor.execute("SELECT * FROM UserItems WHERE user_id = %s AND item_name = LOWER(%s)", (user_id, item_name))
+        await mycursor.execute("SELECT * FROM UserItems WHERE user_id = %s AND LOWER(item_name) = LOWER(%s)", (user_id, item_name))
         user_item = await mycursor.fetchone()
         await mycursor.close()
         return user_item
@@ -400,7 +338,7 @@ class UserItemsTable(commands.Cog):
         enable = 1 if enable else 0
 
         mycursor, db = await the_database()
-        await mycursor.execute("UPDATE UserItems SET enable = %s WHERE user_id = %s, item_name = LOWER(%s)", (enable, user_id, item_name.lower()))
+        await mycursor.execute("UPDATE UserItems SET enable = %s WHERE user_id = %s AND LOWER(item_name) = LOWER(%s)", (enable, user_id, item_name))
         await db.commit()
         await mycursor.close()
 
@@ -510,3 +448,90 @@ class UserItemsSystem(commands.Cog):
 
         else:
             return f'./resources/{item_type}/default.png'
+
+    @commands.command(aliases=["inventory", "items"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def user_inventory(self, ctx, member: Optional[discord.Member] = None) -> None:
+        """ Checks the user's inventory.
+        :param member: The member from whom to show the inventory. [Optional][Default = You] """
+
+        if not member:
+            member = ctx.author
+
+        user_items = await self.get_user_items(member.id)
+
+        formatted_user_items = [
+            f"**{uitem[1]}**: `{uitem[3]}`  (**{'Equipped' if uitem[2] else 'Unequipped'}**)" for uitem in user_items
+        ]
+        items_text = 'No items.' if not user_items else '\n'.join(formatted_user_items)
+        current_time = await utils.get_time_now()
+
+        embed = discord.Embed(
+            title="__User Inventory__",
+            description=items_text,
+            color=member.color,
+            timestamp=current_time
+        )
+        embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
+
+        await ctx.send(embed=embed)
+
+    @commands.command(aliases=['equip'])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def equip_item(self, ctx, *, item_name: str = None) -> None:
+        """ Equips an item.
+        :param item_name: The name of the item to equip. """
+
+        member: discord.Member = ctx.author
+        if not item_name:
+            return await ctx.send(f"**Please, inform an item to equip, {member.mention}!**")
+
+        if not (user_item := await self.get_user_item(member.id, item_name)):
+            return await ctx.send(f"**You don't have this item to equip, {member.mention}!**")
+
+        if user_item[2]:
+            return await ctx.send(f"**This item is already equipped, {member.mention}!**")
+
+        if await self.check_user_can_change_item_state(member.id, item_name, True):
+            return await ctx.send(f"**You already have a __{user_item[3]}__ item equipped!**")
+
+        await self.update_item_equipped(member.id, item_name, True)
+        await ctx.send(f"**{member.mention} equipped __{item_name.title()}__!**")
+
+    @commands.command(aliases=["unequip"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def unequip_item(self, ctx, *, item_name: str = None) -> None:
+        """ Unequips an item.
+        :param item_name: The item to unequip """
+
+        member: discord.Member = ctx.author
+
+        if not item_name:
+            return await ctx.send("**Inform an item to unequip!**")
+
+        if not await self.get_user_item(member.id, item_name):
+            return await ctx.send(f"**You don't have this item, {member.mention}!**")
+
+        if await self.check_user_can_change_item_state(member.id, item_name):
+            return await ctx.send(f"**The item __{item_name}__ is already unequipped!**")
+
+        await self.update_item_equipped(member.id, item_name)
+        await ctx.send(f"**{member.mention} unequipped __{item_name.title()}__!**")
+
+    async def check_user_can_change_item_state(self, user_id: int, item_name: str, enable: bool = False) -> bool:
+        """ Checks whether a user can equip or unequip a specific item.
+        :param user_id: The ID of the user to check.
+        :param item_name: The name of the item.
+        :param enable: Whether to check if you can equip or unequip. """
+
+        mycursor, _ = await the_database()
+        enable = 1 if enable else 0
+        await mycursor.execute(
+            "SELECT * FROM UserItems WHERE user_id = %s AND LOWER(item_name) = LOWER(%s) AND enable = %s", (user_id, item_name, enable))
+        item = await mycursor.fetchone()
+        await mycursor.close()
+
+        if item:
+            return True
+        else:
+            return False
