@@ -342,6 +342,16 @@ class UserItemsTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
+    async def delete_user_item(self, user_id: int, item_name: str) -> None:
+        """ Deletes an item from the user's inventory.
+        :param user_id: The ID of the user from whom to remove the item.
+        :param item_name: The name of the item to remove. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM UserItems WHERE user_id = %s AND LOWER(item_name) = LOWER(%s)", (user_id, item_name))
+        await db.commit()
+        await mycursor.close()
+
 
 
 class UserItemsSystem(commands.Cog):
@@ -449,7 +459,7 @@ class UserItemsSystem(commands.Cog):
         else:
             return f'./resources/{item_type}/default.png'
 
-    @commands.command(aliases=["inventory", "items"])
+    @commands.command(aliases=["inventory", "items", "inv"])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def user_inventory(self, ctx, member: Optional[discord.Member] = None) -> None:
         """ Checks the user's inventory.
@@ -513,7 +523,7 @@ class UserItemsSystem(commands.Cog):
             return await ctx.send(f"**You don't have this item, {member.mention}!**")
 
         if await self.check_user_can_change_item_state(member.id, item_name):
-            return await ctx.send(f"**The item __{item_name}__ is already unequipped!**")
+            return await ctx.send(f"**This item is already unequipped, {member.mention}!**")
 
         await self.update_item_equipped(member.id, item_name)
         await ctx.send(f"**{member.mention} unequipped __{item_name.title()}__!**")
@@ -535,3 +545,52 @@ class UserItemsSystem(commands.Cog):
             return True
         else:
             return False
+
+
+    @commands.command(aliases=["give_member_item"])
+    @commands.has_permissions(administrator=True)
+    async def add_member_item(self, ctx, member: discord.Member = None, *, item_name: str = None) -> None:
+        """ (ADM) Gives an item to a member.
+        :param member: The member to give the item.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        if not member:
+            return await ctx.send("**Inform a member!**")
+
+        if not item_name:
+            return await ctx.send("**Inform an item to add!**")
+
+        if await self.get_user_item(member.id, item_name):
+            return await ctx.send(f"**{member.name} already has that item!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {ctx.author.mention}!**")
+
+        await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
+        return await ctx.send(f"**Successfully given `{regitem[2].title()}` to {member.name}!**")
+
+    @commands.command(aliases=["delete_member_item"])
+    @commands.has_permissions(administrator=True)
+    async def remove_member_item(self, ctx, member: discord.Member = None, *, item_name: str = None) -> None:
+        """ (ADM) Gives an item to a member.
+        :param member: The member to give the item.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        if not member:
+            return await ctx.send("**Inform a member!**")
+
+        if not item_name:
+            return await ctx.send("**Inform an item to add!**")
+
+        if not await self.get_user_item(member.id, item_name):
+            return await ctx.send(f"**{member.name} doesn't even have that item!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {ctx.author.mention}!**")
+
+        await self.delete_user_item(member.id, regitem[2])
+        return await ctx.send(f"**Successfully given `{regitem[2].title()}` to {member.name}!**")
