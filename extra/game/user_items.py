@@ -166,7 +166,7 @@ class RegisteredItemsSystem(commands.Cog):
     async def _register_item_slash_command(self, ctx,
         name: Option(str, name="name", description="The item name.", required=True),
         kind: Option(str, name="type", description="The item type.", choices=[
-            'acessories_1', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
+            'accessories_1', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
             'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
         ], required=True),
         price: Option(int, name="price", description="The item price.", required=True),
@@ -375,7 +375,7 @@ class UserItemsSystem(commands.Cog):
     """ Class for UserItems system. """
 
     item_categories: List[str] = [
-        'acessories_1', 'backgrounds', 'bb_base', 
+        'accessories_1', 'backgrounds', 'bb_base', 
         'dual_hands', 'effects', 'eyes', 'face_furniture', 
         'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
     ]
@@ -437,7 +437,7 @@ class UserItemsSystem(commands.Cog):
             left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands')).convert('RGBA')
             right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands')).convert('RGBA')
             dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
-            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'acessories_1')).convert('RGBA')
+            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1')).convert('RGBA')
             effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
             
             # Pastes all item images

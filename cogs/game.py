@@ -101,7 +101,7 @@ class Game(*game_cogs):
 
 
         all_folders = {
-            "acessories_1": "1Hd-79WiwtnQh-JYVI-y86DBozlmGrGab",
+            "accessories_1": "1Hd-79WiwtnQh-JYVI-y86DBozlmGrGab",
             "backgrounds": "1buwsKzDe1e6b4njfx9Nw-djGLyksnmJ8",
             "bb_base": "12NRW-ipOzXKU1HE4Z8RhbuCXEGDY-om5",
             "dual_hands": "1ItlzRT0gv65_izWBitT4SfR1r-drD2d4",
@@ -123,7 +123,7 @@ class Game(*game_cogs):
                     pass
 
         categories = [
-            'acessories_1', 'backgrounds', 'bb_base', 
+            'accessories_1', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
             'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
         ]
