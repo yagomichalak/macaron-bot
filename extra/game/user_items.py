@@ -177,7 +177,7 @@ class RegisteredItemsSystem(commands.Cog):
     async def _register_item_slash_command(self, ctx,
         name: Option(str, name="name", description="The item name.", required=True),
         kind: Option(str, name="type", description="The item type.", choices=[
-            'accessories_1', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
+            'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
             'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
         ], required=True),
         price: Option(int, name="price", description="The item price.", required=True),
@@ -385,7 +385,7 @@ class UserItemsSystem(commands.Cog):
     """ Class for UserItems system. """
 
     item_categories: List[str] = [
-        'accessories_1', 'backgrounds', 'bb_base', 
+        'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
         'dual_hands', 'effects', 'eyes', 'face_furniture', 
         'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
     ]
@@ -448,6 +448,7 @@ class UserItemsSystem(commands.Cog):
             right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands')).convert('RGBA')
             dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
             accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1')).convert('RGBA')
+            accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2')).convert('RGBA')
             effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
             
             # Pastes all item images
@@ -461,6 +462,7 @@ class UserItemsSystem(commands.Cog):
             background.paste(right_hands, (0, 0), right_hands)
             background.paste(dual_hands, (0, 0), dual_hands)
             background.paste(accessories_1, (0, 0), accessories_1)
+            background.paste(accessories_2, (0, 0), accessories_2)
             background.paste(effects, (0, 0), effects)
 
             # pfp = await utils.get_user_pfp(member)
