@@ -623,3 +623,20 @@ class UserItemsSystem(commands.Cog):
 
         await self.delete_user_item(member.id, regitem[2])
         return await ctx.send(f"**Successfully given `{regitem[2].title()}` to {member.name}!**")
+
+    @commands.command(aliases=['addcrumbs', 'give_crumbs', 'givecrumbs'])
+    @commands.has_permissions(administrator=True)
+    async def add_crumbs(self, ctx, member: discord.Member = None, amount: int = None):
+        """ Adds crumbs to a user.
+        :param member: The member to whom give the crumbs.
+        :param amount: The amount of crumbs to add. (Can be negative.) """
+
+        author: discord.Member = ctx.author
+        if not member:
+            return await ctx.send(f"**Please, inform a user to whom give the crumbs, {author.mention}!**")
+
+        if amount is None:
+            return await ctx.send(f"**Please, inform an amount of crumbs to give, {author.mention}!**")
+    
+        await self.update_user_money(member.id, amount)
+        await ctx.send(f"**Added `{amount}` curbs to {member.mention}!**")
