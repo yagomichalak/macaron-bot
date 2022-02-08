@@ -116,6 +116,7 @@ class Game(*game_cogs):
             "left_hands": "1ffFevrYq4FxPlEjIQ31fhqkIyTywr-41",
             "mouths": "1vcmsB7PI_a1s0jDxtHW9huYXv_5LWjYX",
             "right_hands": "1r4pga4OKpouQNKd95VWeO4FPCR7VzvsL",
+            "outfits": "1RqRHtOfX-Vb6IHZgLJnEBn2AWBlrOypU"
         }
 
         if rall.lower() == 'yes':
@@ -129,6 +130,7 @@ class Game(*game_cogs):
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
             'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+            'outfits'
         ]
         for category in categories:
             try:

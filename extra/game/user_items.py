@@ -178,7 +178,7 @@ class RegisteredItemsSystem(commands.Cog):
         name: Option(str, name="name", description="The item name.", required=True),
         kind: Option(str, name="type", description="The item type.", choices=[
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
-            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
         ], required=True),
         price: Option(int, name="price", description="The item price.", required=True),
         image_name: Option(str, name="image_name", description="The item image name.", required=True),
@@ -388,6 +388,7 @@ class UserItemsSystem(commands.Cog):
         'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
         'dual_hands', 'effects', 'eyes', 'face_furniture', 
         'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+        'outfits'
     ]
 
     def __init__(self, client: commands.Bot) -> None:
@@ -450,6 +451,7 @@ class UserItemsSystem(commands.Cog):
             accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1')).convert('RGBA')
             accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2')).convert('RGBA')
             effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
+            outfits = Image.open(await self.get_user_specific_item_type(member.id, 'outfits')).convert('RGBA')
             
             # Gets the user's hidden item categories.
             all_hidden_icats = await self.get_hidden_item_categories(member.id)
@@ -468,6 +470,7 @@ class UserItemsSystem(commands.Cog):
             if not 'accessories_1' in hidden_icats: background.paste(accessories_1, (0, 0), accessories_1)
             if not 'accessories_2' in hidden_icats: background.paste(accessories_2, (0, 0), accessories_2)
             if not 'effects' in hidden_icats: background.paste(effects, (0, 0), effects)
+            if not 'outfits' in hidden_icats: background.paste(outfits, (0, 0), outfits)
 
             # pfp = await utils.get_user_pfp(member)
             # background.paste(sloth, (0, 0), sloth)
@@ -653,6 +656,7 @@ class UserItemsSystem(commands.Cog):
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
             'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+            'outfits'
         ], required=True)) -> None:
         """ Hides an item category so it won't show on your custom profile. """
 
@@ -667,6 +671,7 @@ class UserItemsSystem(commands.Cog):
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
             'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+            'outfits'
         ], required=True)) -> None:
         """ Unhides an item category so it will show on your custom profile again.
         :param item_category: The category to unhide. """
