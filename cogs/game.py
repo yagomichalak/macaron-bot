@@ -56,7 +56,7 @@ class Game(*game_cogs):
         print('Game cog is ready!')
 
     @commands.command()
-    @commands.has_permissions(administrator=True)
+    @commands.is_owner()
     async def audio_update(self, ctx: Optional[commands.Context] = None, rall: str = 'no') -> None:
         """ Downloads all audios from the GoogleDrive and stores in the bot's folder.
         :param ctx: The context of the command. [Optional]
@@ -93,7 +93,7 @@ class Game(*game_cogs):
             await ctx.send("**Download audio update complete!**")
 
     @commands.command()
-    @commands.has_permissions(administrator=True)
+    @commands.is_owner()
     async def image_update(self, ctx: Optional[commands.Context] = None, rall: str = 'no') -> None:
         """ Downloads all shop images from the GoogleDrive and stores in the bot's folder.
         :param ctx: The context of the command. [Optional]
