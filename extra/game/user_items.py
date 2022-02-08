@@ -687,8 +687,8 @@ class UserItemsSystem(commands.Cog):
         :param item_category: The category to unhide. """
 
         member: discord.Member = ctx.author
+        item_category = escape_mentions(item_category)
         await self._hide_unhide_command_callback(ctx, member, item_category, False)
-
 
     async def _hide_unhide_command_callback(self, ctx, member: discord.Member, item_category: str, hide: Optional[bool] = True) -> None:
         """ Hides or unhides an item category for a user.
@@ -709,16 +709,177 @@ class UserItemsSystem(commands.Cog):
 
         if hide: # Hide            
             if await self.get_hidden_item_category(member.id, item_category):
-                return await answer(f"**This item category is already hidden for you, {member.mention}!**")
+                return await answer(f"**The `{item_category}` item category is already hidden for you, {member.mention}!**")
 
             await self.insert_hidden_item_category(member.id, item_category)
             await answer(f"**Successfully hid the `{item_category}` item category, {member.mention}!**")
 
         else: # Unhide
             if not await self.get_hidden_item_category(member.id, item_category):
-                return await answer(f"**This item category is not even hidden for you, {member.mention}!**")
+                return await answer(f"**The `{item_category}` item category is not even hidden for you, {member.mention}!**")
 
             await self.delete_hidden_item_category(member.id, item_category)
             await answer(f"**Successfully unhid the `{item_category}` item category, {member.mention}!**")
 
 
+    @slash_command(name="show_hidden_categories", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _show_hidden_categories_slash_command(self, ctx,
+        member: Option(discord.Member, name="member", description="The member for whom to show them.", required=False)) -> None:
+        """ Shows your hidden item categories. """
+
+        if not member:
+            member: discord.Member = ctx.author
+
+        await ctx.defer()
+        await self._show_hidden_categories_command_callback(ctx, member)
+
+    @commands.command(name="show_hidden_categories", aliases=["show_hidden", "show_hidden_items", "hidden_categories"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _show_hidden_categories_command(self, ctx, member: discord.Member = None) -> None:
+        """ Shows your hidden item categories.
+        :param member: The member for whom to show them."""
+
+        if not member:
+            member: discord.Member = ctx.author
+
+        await self._show_hidden_categories_command_callback(ctx, member)
+
+    async def _show_hidden_categories_command_callback(self, ctx, member: discord.Member) -> None:
+        """ Callback for the show hidden item categories command. """
+
+        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
+        author: discord.Member = ctx.author
+
+        if not (user_items := await self.get_hidden_item_categories(member.id)):
+            if ctx.author.id == member.id:
+                return await answer(f"**You don't have any hidden item categories, {member.mention}!**")
+            else:
+                return await answer(f"**This user doesn't have any hidden item categories, {author.mention}!**")
+        
+        formatted_item_categories: str = ', '.join(list(map(lambda ic: ic[1], user_items)))
+
+        current_time = await utils.get_time_now()
+        embed = discord.Embed(
+            title="__Hidden Item Categories__",
+            description=formatted_item_categories,
+            color=member.color,
+            timestamp=current_time
+        )
+        embed.set_thumbnail(url=member.display_avatar)
+        embed.set_author(name=member, icon_url=member.display_avatar)
+        embed.set_footer(text=f"Requested by: {author}", icon_url=author.display_avatar)
+        await answer(embed=embed)
+
+class HiddenItemCategoryTable(commands.Cog):
+    """ Class for managing the HiddenItemCategory table in the database. """
+
+    def __init__(self, client: commands.Bot) -> None:
+        """ Class init method. """
+
+        self.client = client
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def create_table_hidden_item_category(self, ctx) -> None:
+        """ Creates the HiddenItemCategory table in the database. """
+
+        member: discord.Member = ctx.author
+        if await self.check_table_hidden_item_category_exists():
+            return await ctx.send(f"**Table `HiddenItemCategory` already exists, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("""
+            CREATE TABLE HiddenItemCategory (
+                user_id BIGINT NOT NULL,
+                item_type VARCHAR(15) NOT NULL,
+                PRIMARY KEY(user_id, item_type)
+            )
+        """)
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully created the `HiddenItemCategory` table, {member.mention}!**")
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def drop_table_hidden_item_category(self, ctx) -> None:
+        """ Dropss the HiddenItemCategory table in the database. """
+
+        member: discord.Member = ctx.author
+        if not await self.check_table_hidden_item_category_exists():
+            return await ctx.send(f"**Table `HiddenItemCategory` doesn't exist, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DROP HiddenItemCategory")
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully dropped the `HiddenItemCategory` table, {member.mention}!**")
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def reset_table_hidden_item_category(self, ctx) -> None:
+        """ Resets the HiddenItemCategory table in the database. """
+
+        member: discord.Member = ctx.author
+        if not await self.check_table_hidden_item_category_exists():
+            return await ctx.send(f"**Table `HiddenItemCategory` doesn't exist yet, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM HiddenItemCategory")
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully reset the `HiddenItemCategory` table, {member.mention}!**")
+
+
+    async def check_table_hidden_item_category_exists(self) -> bool:
+        """ Checks whether the HiddenItemCategory table exists. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SHOW TABLE STATUS LIKE 'HiddenItemCategory'")
+        exists = await mycursor.fetchone()
+        await mycursor.close()
+        if exists:
+            return True
+        else:
+            return False
+
+    async def insert_hidden_item_category(self, user_id: int, item_category: str) -> None:
+        """ Inserts a Hidden Item Category for the user.
+        :param user_id: The ID of the user.
+        :param item_category: The item category to hide. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("INSERT INTO HiddenItemCategory (user_id, item_type) VALUES (%s, %s)", (user_id, item_category.lower()))
+        await db.commit()
+        await mycursor.close()
+
+    async def get_hidden_item_category(self, user_id: int, item_category: str) -> List[Union[int, str]]:
+        """ Gets a specific Hidden Item Category.
+        :param user_id: The ID of the user from whom to get it.
+        :param item_category: The item category to get. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SELECT * FROM HiddenItemCategory WHERE user_id = %s AND item_type = %s", (user_id, item_category.lower()))
+        hidden_item_category = await mycursor.fetchone()
+        await mycursor.close()
+        return hidden_item_category
+
+    async def get_hidden_item_categories(self, user_id: int) -> List[List[Union[int, str]]]:
+        """ Gets all Hidden Item Categories from the user.
+        :param user_id: The ID of the user from whom to get them. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SELECT * FROM HiddenItemCategory WHERE user_id = %s", (user_id,))
+        hidden_item_categories = await mycursor.fetchall()
+        await mycursor.close()
+        return hidden_item_categories
+
+    async def delete_hidden_item_category(self, user_id: int, item_category: str) -> None:
+        """ Deletes a Hidden Item Category.
+        :param user_id: The ID of the user from whom to delete it.
+        :param item_category: The category to delete. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM HiddenItemCategory WHERE user_id = %s AND item_type = %s", (user_id, item_category))
+        await db.commit()
+        await mycursor.close()

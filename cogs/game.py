@@ -14,14 +14,16 @@ from fuzzywuzzy import fuzz
 from external_cons import the_drive
 from extra import utils
 from extra.game.macaron_profile import MacaronProfileTable
-from extra.game.user_items import RegisteredItemsTable, RegisteredItemsSystem, UserItemsTable, UserItemsSystem
+from extra.game.user_items import (
+    RegisteredItemsTable, RegisteredItemsSystem, UserItemsTable, UserItemsSystem, HiddenItemCategoryTable
+)
 
 server_id: int = int(os.getenv('SERVER_ID'))
 guild_ids: List[int] = [server_id]
 
 game_cogs: List[commands.Cog] = [
     MacaronProfileTable, RegisteredItemsTable, RegisteredItemsSystem,
-    UserItemsTable, UserItemsSystem
+    UserItemsTable, UserItemsSystem, HiddenItemCategoryTable
 ]
 
 class Game(*game_cogs):
