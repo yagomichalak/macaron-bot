@@ -640,3 +640,85 @@ class UserItemsSystem(commands.Cog):
     
         await self.update_user_money(member.id, amount)
         await ctx.send(f"**Added `{amount}` curbs to {member.mention}!**")
+
+
+    @slash_command(name="hide", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _hide_slash_command(self, ctx, 
+        item_category: Option(str, name="item_category", description="The category to hide.", choices=[
+            'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
+            'dual_hands', 'effects', 'eyes', 'face_furniture', 
+            'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+        ], required=True)) -> None:
+        """ Hides an item category so it won't show on your custom profile. """
+
+        member: discord.Member = ctx.author
+        await ctx.defer()
+        await self._hide_unhide_command_callback(ctx, member, item_category)
+
+    @slash_command(name="unhide", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _unhide_slash_command(self, ctx,
+        item_category: Option(str, name="item_category", description="The category to unhide.", choices=[
+            'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
+            'dual_hands', 'effects', 'eyes', 'face_furniture', 
+            'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
+        ], required=True)) -> None:
+        """ Unhides an item category so it will show on your custom profile again.
+        :param item_category: The category to unhide. """
+
+        member: discord.Member = ctx.author
+        await ctx.defer()
+        await self._hide_unhide_command_callback(ctx, member, item_category, False)
+
+    @commands.command(name="hide", aliases=["omit", "cacher"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _hide_command(self, ctx, item_category: str = None) -> None:
+        """ Hides an item category so it won't show on your custom profile.
+        :param item_category: The category to hide. """
+
+        member: discord.Member = ctx.author
+        await self._hide_unhide_command_callback(ctx, member, item_category)
+
+    @commands.command(name="unhide", aliases=["include"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _unhide_command(self, ctx, item_category: str = None) -> None:
+        """ Unhides an item category so it will show on your custom profile again.
+        :param item_category: The category to unhide. """
+
+        member: discord.Member = ctx.author
+        await self._hide_unhide_command_callback(ctx, member, item_category, False)
+
+
+    async def _hide_unhide_command_callback(self, ctx, member: discord.Member, item_category: str, hide: Optional[bool] = True) -> None:
+        """ Hides or unhides an item category for a user.
+        :param ctx: The context of the command.
+        :param member: The member for whom to hide/unhide the item category.
+        :param item_category: The item category to hide/unhide.
+        :param hide: Whether it's to hide the comamnd. [Optional][Default = True] """
+
+        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
+        hide_kw: str = 'hide' if hide else 'unhide'
+        categories_text: str  = ', '.join(self.item_categories)
+
+        if not item_category:
+            return await answer(f"**Please, inform an item category to {hide_kw}, {member.mention}!\n`{categories_text}`**")
+
+        if item_category.lower() not in self.item_categories:
+            return await answer(f"**Please, inform a valid item category, {member.mention}!\n`{categories_text}`**")
+
+        if hide: # Hide            
+            if await self.get_hidden_item_category(member.id, item_category):
+                return await answer(f"**This item category is already hidden for you, {member.mention}!**")
+
+            await self.insert_hidden_item_category(member.id, item_category)
+            await answer(f"**Successfully hid the `{item_category}` item category, {member.mention}!**")
+
+        else: # Unhide
+            if not await self.get_hidden_item_category(member.id, item_category):
+                return await answer(f"**This item category is not even hidden for you, {member.mention}!**")
+
+            await self.delete_hidden_item_category(member.id, item_category)
+            await answer(f"**Successfully unhid the `{item_category}` item category, {member.mention}!**")
+
+
