@@ -210,7 +210,7 @@ class RegisteredItemsSystem(commands.Cog):
         member: discord.Member = ctx.author
         registered_items = await self.get_registered_items_ordered_by_price()
         formatted_registered_items = [
-            f"**{regitem[2]}**: `{regitem[3]}` crumbs. (**{regitem[1]}**)" for regitem in registered_items
+            f"**{regitem[2]}**: `{regitem[3]}` crumbs. ({regitem[1]})" for regitem in registered_items
         ]
         items_text = 'No items registered.' if not registered_items else '\n'.join(formatted_registered_items)
         current_time = await utils.get_time_now()
