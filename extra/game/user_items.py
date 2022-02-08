@@ -135,6 +135,17 @@ class RegisteredItemsTable(commands.Cog):
 
         return registered_items
 
+    async def get_registered_items_ordered_by_price(self) -> List[List[Union[str, int]]]:
+        """ Gets all registered items ordered by price. """
+
+        mycursor, _ = await the_database()
+
+        await mycursor.execute("SELECT * FROM RegisteredItems ORDER BY item_price DESC")
+        registered_items = await mycursor.fetchall()
+        await mycursor.close()
+
+        return registered_items
+
     async def delete_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> None:
         """ Deletes a registered item.
         :param name: The name of the item to delete. [Optional]
@@ -197,8 +208,7 @@ class RegisteredItemsSystem(commands.Cog):
         """ Shows all the registered items. """
 
         member: discord.Member = ctx.author
-
-        registered_items = await self.get_registered_items()
+        registered_items = await self.get_registered_items_ordered_by_price()
         formatted_registered_items = [
             f"**{regitem[2]}**: `{regitem[3]}` crumbs. (**{regitem[1]}**)" for regitem in registered_items
         ]
