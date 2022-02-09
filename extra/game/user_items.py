@@ -1,13 +1,16 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, pages
 from discord.utils import escape_mentions
 from discord import slash_command, Option
 
 from external_cons import the_database
+from extra import utils
+from extra.selects import ChangeItemCategoryMenuSelect
+
+
 import os
 from typing import List, Optional, Any, Union, Dict
 from PIL import ImageDraw, ImageFont, Image
-from extra import utils
 
 guild_ids: List[int] = [int(os.getenv('SERVER_ID'))]
 
@@ -207,23 +210,29 @@ class RegisteredItemsSystem(commands.Cog):
     async def _show_registered_items_slash_command(self, ctx) -> None:
         """ Shows all the registered items. """
 
+        await ctx.defer()
         member: discord.Member = ctx.author
         registered_items = await self.get_registered_items_ordered_by_price()
-        formatted_registered_items = [
-            f"**{regitem[2]}**: `{regitem[3]}` crumbs. ({regitem[1]})" for regitem in registered_items
-        ]
-        items_text = 'No items registered.' if not registered_items else '\n'.join(formatted_registered_items)
-        current_time = await utils.get_time_now()
+        # items_text = 'No items registered.' if not registered_items else '\n'.join(formatted_registered_items)
 
-        embed = discord.Embed(
-            title="__Registered Items__",
-            description=items_text,
-            color=member.color,
-            timestamp=current_time
-        )
-        embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
+        # embed = discord.Embed(
+        #     title="__Registered Items__",
+        #     description=items_text,
+        #     color=member.color,
+        #     timestamp=current_time
+        # )
+        # embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
+        self.pages = registered_items
+        view = discord.ui.View()
+        select = ChangeItemCategoryMenuSelect(registered_items)
+        formatted_items = await select.sort_registered_items()
+        view.add_item(select)
+        print(formatted_items)
+        paginator = pages.Paginator(pages=formatted_items, custom_view=view)
+        await paginator.respond(ctx.interaction, ephemeral=False)
 
-        await ctx.respond(embed=embed)
+
+        # await ctx.respond(embed=embed)
 
     @slash_command(name="unregister_item", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
