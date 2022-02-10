@@ -22,8 +22,9 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         self.view.item_category = option
         formatted_items = await self.sort_registered_items(option)
         # Updates the paginator
-        self.view.pages = formatted_items
-        await self.view.update()
+
+        await self.view.update(pages=formatted_items)
+        await interaction.edit_original_message(view=self.view)
 
 
     async def sort_registered_items(self, option = 'All') -> List[str]:
@@ -44,12 +45,36 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
             f"**{regitem[2]}**: `{regitem[3]}` crumbs. ({regitem[1]})" for regitem in filtered_items
         ]
         if not formatted_items:
-            print('la option', option)
             if option == 'All':
                 formatted_items = ['No items registered']
             else:
                 formatted_items = [f'No `{option}` items registered']
 
         # Makes embeds out of the items
+        embedded_items: List[discord.Embed] = []
+        text_embed: discord.Embed = discord.Embed(
+            title=f"__Showing `{option}` items__",
+            color=discord.Color.green()
+        )
 
-        return formatted_items
+        per_page: int = 10
+        counter: int = 0
+
+        for _ in range(len(formatted_items)):
+            indexed_items: List[str] = []
+
+            for ii in range(per_page):
+                if len(formatted_items) < counter + ii + 1:
+                    break
+                indexed_items.append(formatted_items[counter+ii])
+
+            if not indexed_items:
+                break
+
+            counter += per_page
+            index_embed = text_embed.copy()
+            index_embed.description = '\n'.join(indexed_items)
+            embedded_items.append(index_embed)
+            indexed_items.clear()
+        
+        return embedded_items

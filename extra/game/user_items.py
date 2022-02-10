@@ -207,32 +207,25 @@ class RegisteredItemsSystem(commands.Cog):
 
     @slash_command(name="show_registered_items", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    async def _show_registered_items_slash_command(self, ctx) -> None:
+    async def _show_registered_items_slash_command(self, ctx,
+        item_category: Option(str, name="item_category", description="The item category to show.", choices=[
+            'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+        ], required=False, default='All')) -> None:
         """ Shows all the registered items. """
 
         await ctx.defer()
         member: discord.Member = ctx.author
         registered_items = await self.get_registered_items_ordered_by_price()
-        # items_text = 'No items registered.' if not registered_items else '\n'.join(formatted_registered_items)
 
-        # embed = discord.Embed(
-        #     title="__Registered Items__",
-        #     description=items_text,
-        #     color=member.color,
-        #     timestamp=current_time
-        # )
-        # embed.set_footer(text=f"Requested by: {member}", icon_url=member.display_avatar)
         self.pages = registered_items
         view = discord.ui.View()
         select = ChangeItemCategoryMenuSelect(registered_items)
-        formatted_items = await select.sort_registered_items()
-        view.add_item(select)
-        print(formatted_items)
+        formatted_items = await select.sort_registered_items(item_category)
+        # view.add_item(select)
+
         paginator = pages.Paginator(pages=formatted_items, custom_view=view)
         await paginator.respond(ctx.interaction, ephemeral=False)
-
-
-        # await ctx.respond(embed=embed)
 
     @slash_command(name="unregister_item", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
