@@ -449,11 +449,11 @@ class UserItemsSystem(commands.Cog):
             hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats')).convert('RGBA')
             left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands')).convert('RGBA')
             right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands')).convert('RGBA')
-            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
             accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1')).convert('RGBA')
             accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2')).convert('RGBA')
             effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
             outfits = Image.open(await self.get_user_specific_item_type(member.id, 'outfits')).convert('RGBA')
+            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
             
             # Gets the user's hidden item categories.
             all_hidden_icats = await self.get_hidden_item_categories(member.id)
@@ -468,11 +468,11 @@ class UserItemsSystem(commands.Cog):
             if not 'hats' in hidden_icats: background.paste(hats, (0, 0), hats)
             if not 'left_hands' in hidden_icats: background.paste(left_hands, (0, 0), left_hands)
             if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
-            if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
             if not 'accessories_1' in hidden_icats: background.paste(accessories_1, (0, 0), accessories_1)
             if not 'accessories_2' in hidden_icats: background.paste(accessories_2, (0, 0), accessories_2)
             if not 'effects' in hidden_icats: background.paste(effects, (0, 0), effects)
             if not 'outfits' in hidden_icats: background.paste(outfits, (0, 0), outfits)
+            if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
 
             # pfp = await utils.get_user_pfp(member)
             # background.paste(sloth, (0, 0), sloth)
