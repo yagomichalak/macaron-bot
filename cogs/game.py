@@ -47,6 +47,8 @@ class Game(*game_cogs):
         self.answer: discord.PartialMessageable = None
         self.session_id: str = None
 
+        self.crumbs_emoji: str = '<:crumbs:940086555224211486>'
+
     @commands.Cog.listener()
     async def on_ready(self) -> None:
         """ Tells when the cog is ready to go. """
@@ -387,7 +389,7 @@ class Game(*game_cogs):
                     await self.txt.send(f"💪 **End of the game, you did it, {self.player.mention}!** 💪")
                     crumbs = await self.reward_user()
                     await self.txt.send(f"""**
-                    You've got `{crumbs}` crumbs!
+                    You've got `{crumbs}` crumbs {self.crumbs_emoji}!
                     ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
                     await self.reset_game_status()
             else:
@@ -513,7 +515,7 @@ class Game(*game_cogs):
 
         embed: discord.Embed = discord.Embed(
             title=f"{member}'s Profile",
-            description=f"**Money:** {profile[1]} crumbs.\n" \
+            description=f"**Money:** {profile[1]} crumbs {self.crumbs_emoji}.\n" \
                 f"**Games played:** {profile[2]}\n" \
                 f"**Last time played:** {last_time_played}",
                 color=member.color,

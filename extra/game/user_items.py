@@ -205,7 +205,7 @@ class RegisteredItemsSystem(commands.Cog):
         await ctx.respond(f"**Successfully registered the `{name}` item, {member.mention}!**")
 
 
-    @slash_command(name="show_registered_items", guild_ids=guild_ids)
+    @slash_command(name="shop", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def _show_registered_items_slash_command(self, ctx,
         item_category: Option(str, name="item_category", description="The item category to show.", choices=[
@@ -415,7 +415,7 @@ class UserItemsSystem(commands.Cog):
         except:
             pass
 
-    @commands.command(name="custom_character")
+    @commands.command(name="character")
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def _custom_character_command(self, ctx, member: Union[discord.Member, discord.User] = None) -> None:
         """ Makes a custom character image.
@@ -631,7 +631,7 @@ class UserItemsSystem(commands.Cog):
             return await ctx.send(f"**This item doesn't exist, {ctx.author.mention}!**")
 
         await self.delete_user_item(member.id, regitem[2])
-        return await ctx.send(f"**Successfully given `{regitem[2].title()}` to {member.name}!**")
+        return await ctx.send(f"**Successfully removed `{regitem[2].title()}` from {member.name}!**")
 
     @commands.command(aliases=['addcrumbs', 'give_crumbs', 'givecrumbs'])
     @commands.has_permissions(administrator=True)
@@ -648,7 +648,7 @@ class UserItemsSystem(commands.Cog):
             return await ctx.send(f"**Please, inform an amount of crumbs to give, {author.mention}!**")
     
         await self.update_user_money(member.id, amount)
-        await ctx.send(f"**Added `{amount}` curbs to {member.mention}!**")
+        await ctx.send(f"**Added `{amount}` {self.crumbs_emoji} to {member.mention}!**")
 
 
     @slash_command(name="hide", guild_ids=guild_ids)

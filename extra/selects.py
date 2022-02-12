@@ -14,6 +14,7 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
 
         self.registered_items = registered_items
         self.item_category: str = 'All'
+        self.crumbs_emoji: str = '<:crumbs:940086555224211486>'
     
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -42,7 +43,7 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
 
         # Formats items
         formatted_items = [
-            f"**{regitem[2]}**: `{regitem[3]}` crumbs. ({regitem[1]})" for regitem in filtered_items
+            f"**{regitem[2]}**: {self.crumbs_emoji} `{regitem[3]}` ({regitem[1]})" for regitem in filtered_items
         ]
         if not formatted_items:
             if option == 'All':
