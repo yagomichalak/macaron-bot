@@ -282,7 +282,7 @@ class RegisteredItemsSystem(commands.Cog):
         self.pages = registered_items
         view = discord.ui.View()
         select = ChangeItemCategoryMenuSelect(registered_items)
-        formatted_items = await select.sort_registered_items(item_category)
+        formatted_items = await select.sort_registered_items(item_category, exclusive=True)
         # view.add_item(select)
 
         paginator = pages.Paginator(pages=formatted_items, custom_view=view)
