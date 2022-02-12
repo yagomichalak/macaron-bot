@@ -58,7 +58,7 @@ class RegisteredItemsTable(commands.Cog):
             return await ctx.send(f"**Table `RegisteredItems` doesn't exist, {member.mention}!**")
 
         mycursor, db = await the_database()
-        await mycursor.execute("DROP RegisteredItems")
+        await mycursor.execute("DROP TABLE RegisteredItems")
         await db.commit()
         await mycursor.close()
         await ctx.send(f"**Successfully dropped the `RegisteredItems` table, {member.mention}!**")
@@ -332,7 +332,6 @@ class RegisteredItemsSystem(commands.Cog):
         await self.delete_registered_item(name)
         await ctx.respond(f"**Successfully deleted the registered item `{name}`, {member.mention}!**")
 
-
 class UserItemsTable(commands.Cog):
     """ Class for managing the UserItems table in the database. """
 
@@ -376,7 +375,7 @@ class UserItemsTable(commands.Cog):
             return await ctx.send(f"**Table `UserItems` doesn't exist, {member.mention}!**")
 
         mycursor, db = await the_database()
-        await mycursor.execute("DROP UserItems")
+        await mycursor.execute("DROP TABLE UserItems")
         await db.commit()
         await mycursor.close()
         await ctx.send(f"**Successfully dropped the `UserItems` table, {member.mention}!**")
@@ -468,8 +467,6 @@ class UserItemsTable(commands.Cog):
         await mycursor.execute("DELETE FROM UserItems WHERE user_id = %s AND LOWER(item_name) = LOWER(%s)", (user_id, item_name))
         await db.commit()
         await mycursor.close()
-
-
 
 class UserItemsSystem(commands.Cog):
     """ Class for UserItems system. """
@@ -818,7 +815,6 @@ class UserItemsSystem(commands.Cog):
         await self.update_user_money(member.id, amount)
         await ctx.send(f"**Added `{amount}` {self.crumbs_emoji} to {member.mention}!**")
 
-
     @slash_command(name="hide", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def _hide_slash_command(self, ctx, 
@@ -900,7 +896,6 @@ class UserItemsSystem(commands.Cog):
             await self.delete_hidden_item_category(member.id, item_category)
             await answer(f"**Successfully unhid the `{item_category}` item category, {member.mention}!**")
 
-
     @slash_command(name="show_hidden_categories", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def _show_hidden_categories_slash_command(self, ctx,
@@ -950,6 +945,104 @@ class UserItemsSystem(commands.Cog):
         embed.set_footer(text=f"Requested by: {author}", icon_url=author.display_avatar)
         await answer(embed=embed)
 
+    @slash_command(name="add_exclusive_item_role", guild_ids=guild_ids)
+    @commands.has_permissions(administrator=True)
+    async def _add_exclusive_item_role_slash_command(self, ctx, 
+        role: Option(discord.Role, name="role", description="The role to add access to the item."),
+        item_name: Option(str, name="item_name", description="The name of the item.")
+        ) -> None:
+        """ (ADM) Adds an exclusive item role. """
+
+        await ctx.defer()
+        item_name = escape_mentions(item_name)
+        await self._add_exclusive_item_role_callback(ctx, role, item_name)
+
+    @commands.command(name="add_exclusive_item_role", aliases=["add_exclusive_role", "addexclusive", "add_exclusive"])
+    @commands.has_permissions(administrator=True)
+    async def _add_exclusive_item_role_command(self, ctx, role: discord.Role = None, *, item_name: str = None) -> None:
+        """ (ADM) Adds an exclusive item role.
+        :param role: The role to add access to the item.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        await self._add_exclusive_item_role_callback(ctx, role, item_name)
+
+    async def _add_exclusive_item_role_callback(self, ctx, role: discord.Role, item_name: str) -> None:
+        """ Callback for the command that adds an exclusive item role.
+        :param ctx: The context of the command.
+        :param role: The role to give access to the item.
+        :param item_name: The name of the item to attach to the role. """
+
+        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
+        member: discord.Member = ctx.author
+
+        if not role:
+            return await answer(f"**Please, inform a role to give access to the item, {member.mention}!**")
+
+        if not item_name:
+            return await answer(f"**Inform an item to attach to the role, {member.mention}!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await answer(f"**This item doesn't exist, {member.mention}!**")
+
+        if await self.get_exclusive_item_role(item_name, role.id):
+            return await answer(f"**This item is already exclusive to this role, {member.mention}!**")
+
+        await self.insert_exclusive_item_role(role.id, regitem[2], regitem[0])
+        await self.update_item_exclusive(regitem[2])
+        return await answer(f"**The `{regitem[2]}` item is now exclusive to the `{role}` role, {member.name}!**")
+
+    @slash_command(name="delete_exclusive_item_role", guild_ids=guild_ids)
+    @commands.has_permissions(administrator=True)
+    async def _delete_exclusive_item_role_slash_command(self, ctx, 
+        role: Option(discord.Role, name="role", description="The role to remove access from the item."),
+        item_name: Option(str, name="item_name", description="The name of the item.")
+        ) -> None:
+        """ (ADM) Removes an exclusive item role. """
+
+        await ctx.defer()
+        item_name = escape_mentions(item_name)
+        await self._delete_exclusive_item_role_callback(ctx, role, item_name)
+
+    @commands.command(name="delete_exclusive_item_role", aliases=[
+        "delete_exclusive_role", "delexclusive", "delete_exclusive",
+        "remove_exclusive", "removeexclusive"
+    ])
+    @commands.has_permissions(administrator=True)
+    async def _delete_exclusive_item_role_command(self, ctx, role: discord.Role = None, *, item_name: str = None) -> None:
+        """ (ADM) Removes an exclusive item role.
+        :param role: The role to remove access from the item.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        await self._delete_exclusive_item_role_callback(ctx, role, item_name)
+
+    async def _delete_exclusive_item_role_callback(self, ctx, role: discord.Role, item_name: str) -> None:
+        """ Callback for the command that removes an exclusive item role.
+        :param ctx: The context of the command.
+        :param role: The role to take access from the item.
+        :param item_name: The name of the item to dettach from the role. """
+
+        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
+        member: discord.Member = ctx.author
+
+        if not role:
+            return await answer(f"**Please, inform a role to remove access from the item, {member.mention}!**")
+
+        if not item_name:
+            return await answer(f"**Inform an item to dettach from the role, {member.mention}!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await answer(f"**This item doesn't exist, {member.mention}!**")
+
+        if not await self.get_exclusive_item_role(item_name, role.id):
+            return await answer(f"**This item is not even exclusive to this role, {member.mention}!**")
+
+        await self.delete_exclusive_item_role(item_name, role.id)
+        return await answer(f"**The `{regitem[2]}` item is no longer exclusive to the `{role}` role, {member.name}!**")
+
 class HiddenItemCategoryTable(commands.Cog):
     """ Class for managing the HiddenItemCategory table in the database. """
 
@@ -989,7 +1082,7 @@ class HiddenItemCategoryTable(commands.Cog):
             return await ctx.send(f"**Table `HiddenItemCategory` doesn't exist, {member.mention}!**")
 
         mycursor, db = await the_database()
-        await mycursor.execute("DROP HiddenItemCategory")
+        await mycursor.execute("DROP TABLE HiddenItemCategory")
         await db.commit()
         await mycursor.close()
         await ctx.send(f"**Successfully dropped the `HiddenItemCategory` table, {member.mention}!**")
@@ -1022,43 +1115,131 @@ class HiddenItemCategoryTable(commands.Cog):
         else:
             return False
 
-    async def insert_hidden_item_category(self, user_id: int, item_category: str) -> None:
-        """ Inserts a Hidden Item Category for the user.
-        :param user_id: The ID of the user.
-        :param item_category: The item category to hide. """
+class ExclusiveItemRoleTable(commands.Cog):
+    """ Class for managing the ExclusiveItemRole table in the database. """
+
+    def __init__(self, client: commands.Bot) -> None:
+        """ Class init method. """
+
+        self.client = client
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def create_table_exclusive_item_role(self, ctx) -> None:
+        """ Creates the ExclusiveItemRole table in the database. """
+
+        member: discord.Member = ctx.author
+        if await self.check_table_exclusive_item_role_exists():
+            return await ctx.send(f"**Table `ExclusiveItemRole` already exists, {member.mention}!**")
 
         mycursor, db = await the_database()
-        await mycursor.execute("INSERT INTO HiddenItemCategory (user_id, item_type) VALUES (%s, %s)", (user_id, item_category.lower()))
+        await mycursor.execute("""
+            CREATE TABLE ExclusiveItemRole (
+                role_id BIGINT NOT NULL,
+                item_name VARCHAR(30) NOT NULL,
+                image_name VARCHAR(50) NOT NULL,
+                PRIMARY KEY(role_id, item_name),
+                CONSTRAINT fk_eit_image_name FOREIGN KEY (image_name) REFERENCES RegisteredItems (image_name) ON DELETE CASCADE ON UPDATE CASCADE
+            ) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
+        """)
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully created the `ExclusiveItemRole` table, {member.mention}!**")
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def drop_table_exclusive_item_role(self, ctx) -> None:
+        """ Dropss the ExclusiveItemRole table in the database. """
+
+        member: discord.Member = ctx.author
+        if not await self.check_table_exclusive_item_role_exists():
+            return await ctx.send(f"**Table `ExclusiveItemRole` doesn't exist, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DROP TABLE ExclusiveItemRole")
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully dropped the `ExclusiveItemRole` table, {member.mention}!**")
+
+    @commands.command(hidden=True)
+    @commands.has_permissions(administrator=True)
+    async def reset_table_exclusive_item_role(self, ctx) -> None:
+        """ Resets the ExclusiveItemRole table in the database. """
+
+        member: discord.Member = ctx.author
+        if not await self.check_table_exclusive_item_role_exists():
+            return await ctx.send(f"**Table `ExclusiveItemRole` doesn't exist yet, {member.mention}!**")
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM ExclusiveItemRole")
+        await db.commit()
+        await mycursor.close()
+        await ctx.send(f"**Successfully reset the `ExclusiveItemRole` table, {member.mention}!**")
+
+
+    async def check_table_exclusive_item_role_exists(self) -> bool:
+        """ Checks whether the ExclusiveItemRole table exists. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SHOW TABLE STATUS LIKE 'ExclusiveItemRole'")
+        exists = await mycursor.fetchone()
+        await mycursor.close()
+        if exists:
+            return True
+        else:
+            return False
+
+    async def insert_exclusive_item_role(self, role_id: int, item_name: str, image_name: str) -> None:
+        """ Inserts an Exclusive Item Role.
+        :param role_id: The exclusive item role ID.
+        :param item_name: The name of the item this role has access to.
+        :param image_name: The image name of that item."""
+
+        mycursor, db = await the_database()
+        await mycursor.execute("""
+            INSERT INTO ExclusiveItemRole (
+                role_id, item_name, image_name
+            ) VALUES (%s, %s, %s)
+        """, (role_id, item_name, image_name))
         await db.commit()
         await mycursor.close()
 
-    async def get_hidden_item_category(self, user_id: int, item_category: str) -> List[Union[int, str]]:
-        """ Gets a specific Hidden Item Category.
-        :param user_id: The ID of the user from whom to get it.
-        :param item_category: The item category to get. """
+    async def get_exclusive_item_role(self, item_name: str, role_id: int) -> List[Union[int, str]]:
+        """ Gets an exclusive item role from an item.
+        :param item_name: The name of the item from which to get the role.
+        :param role_id: The ID of the role to get. """
 
         mycursor, _ = await the_database()
-        await mycursor.execute("SELECT * FROM HiddenItemCategory WHERE user_id = %s AND item_type = %s", (user_id, item_category.lower()))
-        hidden_item_category = await mycursor.fetchone()
+        await mycursor.execute("SELECT * FROM ExclusiveItemRole WHERE LOWER(item_name) = LOWER(%s) AND role_id = %s", (item_name, role_id))
+        role = await mycursor.fetchone()
         await mycursor.close()
-        return hidden_item_category
+        return role
 
-    async def get_hidden_item_categories(self, user_id: int) -> List[List[Union[int, str]]]:
-        """ Gets all Hidden Item Categories from the user.
-        :param user_id: The ID of the user from whom to get them. """
+    async def get_exclusive_item_roles(self, item_name: str) -> List[List[Union[int, str]]]:
+        """ Gets all exclusive item roles from an item.
+        :param item_name: The name of the item from which to get the roles. """
 
         mycursor, _ = await the_database()
-        await mycursor.execute("SELECT * FROM HiddenItemCategory WHERE user_id = %s", (user_id,))
-        hidden_item_categories = await mycursor.fetchall()
+        await mycursor.execute("SELECT * FROM ExclusiveItemRole WHERE LOWER(item_name) = LOWER(%s)", (item_name,))
+        roles = await mycursor.fetchall()
         await mycursor.close()
-        return hidden_item_categories
+        return roles
 
-    async def delete_hidden_item_category(self, user_id: int, item_category: str) -> None:
-        """ Deletes a Hidden Item Category.
-        :param user_id: The ID of the user from whom to delete it.
-        :param item_category: The category to delete. """
+    async def delete_exclusive_item_role(self, item_name: str, role_id: int) -> None:
+        """ Deletes an exclusive item role from an item.
+        :param item_name: The item name from which to remove the role.
+        :param role_id: The ID of the role to remove. """
 
         mycursor, db = await the_database()
-        await mycursor.execute("DELETE FROM HiddenItemCategory WHERE user_id = %s AND item_type = %s", (user_id, item_category))
+        await mycursor.execute("DELETE FROM ExclusiveItemRole WHERE LOWER(item_name) = LOWER(%s) AND role_id = %s", (item_name, role_id))
+        await db.commit()
+        await mycursor.close()
+
+    async def delete_exclusive_item_roles(self, item_name: str) -> None:
+        """ Deletes all exclusive item roles from an item.
+        :param item_name: The item name from which to remove the roles."""
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM ExclusiveItemRole WHERE LOWER(item_name) = LOWER(%s)", (item_name,))
         await db.commit()
         await mycursor.close()
