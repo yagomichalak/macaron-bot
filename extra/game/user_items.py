@@ -753,6 +753,7 @@ class UserItemsSystem(commands.Cog):
             return await ctx.send(f"**This item is not even exclusive, {member.mention}!**")
 
         await self.update_item_exclusive(regitem[2], False)
+        await self.delete_exclusive_item_roles(regitem[2])
         return await ctx.send(f"**The `{regitem[2].title()}` item is no longer exclusive, {member.name}!**")
 
     @commands.command(aliases=["give_member_item", "add_item", "give_item"])
@@ -1008,7 +1009,7 @@ class UserItemsSystem(commands.Cog):
 
         await ctx.defer()
         item_name = escape_mentions(item_name)
-        await self._delete_exclusive_item_role_callback(ctx, role, item_name)
+        await self._delete_exclusive_item_role_callback(ctx, item_name, role)
 
     @commands.command(name="delete_exclusive_item_role", aliases=[
         "delete_exclusive_role", "delexclusive", "delete_exclusive",
@@ -1022,18 +1023,42 @@ class UserItemsSystem(commands.Cog):
 
         item_name = escape_mentions(item_name)
 
-        await self._delete_exclusive_item_role_callback(ctx, role, item_name)
+        await self._delete_exclusive_item_role_callback(ctx, item_name, role)
 
-    async def _delete_exclusive_item_role_callback(self, ctx, role: discord.Role, item_name: str) -> None:
+    @slash_command(name="delete_exclusive_item_roles", guild_ids=guild_ids)
+    @commands.has_permissions(administrator=True)
+    async def _delete_exclusive_item_roles_slash_command(self, ctx, 
+        item_name: Option(str, name="item_name", description="The name of the item.") ) -> None:
+        """ (ADM) Removes all exclusive item roles from an item. """
+
+        await ctx.defer()
+        item_name = escape_mentions(item_name)
+        await self._delete_exclusive_item_role_callback(ctx, item_name, all=True)
+
+    @commands.command(name="delete_exclusive_item_roles", aliases=[
+        "delete_exclusive_roles", "delexclusives", "delete_exclusives",
+        "remove_exclusives", "removeexclusives"
+    ])
+    @commands.has_permissions(administrator=True)
+    async def _delete_exclusive_item_roles_command(self, ctx, *, item_name: str = None) -> None:
+        """ (ADM) Removes all exclusive item roles.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        await self._delete_exclusive_item_role_callback(ctx, item_name, all=True)
+
+    async def _delete_exclusive_item_role_callback(self, ctx, item_name: str, role: discord.Role = None, all: bool = False) -> None:
         """ Callback for the command that removes an exclusive item role.
         :param ctx: The context of the command.
-        :param role: The role to take access from the item.
-        :param item_name: The name of the item to dettach from the role. """
+        :param item_name: The name of the item to dettach from the role.
+        :param role: The role to take access from the item. [Optional]
+        :param all: Whether to delete all roles. [Optional][Default = False] """
 
         answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
         member: discord.Member = ctx.author
 
-        if not role:
+        if not role and not all:
             return await answer(f"**Please, inform a role to remove access from the item, {member.mention}!**")
 
         if not item_name:
@@ -1042,11 +1067,18 @@ class UserItemsSystem(commands.Cog):
         if not (regitem := await self.get_registered_item(name=item_name)):
             return await answer(f"**This item doesn't exist, {member.mention}!**")
 
-        if not await self.get_exclusive_item_role(item_name, role.id):
-            return await answer(f"**This item is not even exclusive to this role, {member.mention}!**")
+        if all:
+            if not await self.get_exclusive_item_roles(item_name):
+                return await answer(f"**This item is not even exclusive to any role, {member.mention}!**")
 
-        await self.delete_exclusive_item_role(item_name, role.id)
-        return await answer(f"**The `{regitem[2]}` item is no longer exclusive to the `{role}` role, {member.name}!**")
+            await self.delete_exclusive_item_roles(item_name)
+            return await answer(f"**The `{regitem[2]}` item is no longer exclusive to any role, {member.name}!**")
+        else:
+            if not await self.get_exclusive_item_role(item_name, role.id):
+                return await answer(f"**This item is not even exclusive to this role, {member.mention}!**")
+
+            await self.delete_exclusive_item_role(item_name, role.id)
+            return await answer(f"**The `{regitem[2]}` item is no longer exclusive to the `{role}` role, {member.name}!**")
 
 class HiddenItemCategoryTable(commands.Cog):
     """ Class for managing the HiddenItemCategory table in the database. """

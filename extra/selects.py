@@ -62,7 +62,7 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         embedded_items: List[discord.Embed] = []
         text_embed: discord.Embed = discord.Embed(
             title=f"__Showing `{option}` items__",
-            color=discord.Color.green()
+            color=discord.Color.green() if not exclusive else int('000001', 16)
         )
 
         per_page: int = 10
