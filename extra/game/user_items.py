@@ -700,7 +700,12 @@ class UserItemsSystem(commands.Cog):
             return await ctx.send(f"**The item costs `{regitem[3]}`{self.crumbs_emoji}, you have `{user_profile[1]}`{self.crumbs_emoji}, {member.mention}!**")
 
         if regitem[6]:
-            return await ctx.send(f"**You cannot buy this exclusive item, {member.mention}!**")
+            exclusive_roles = await self.get_exclusive_item_roles(regitem[2])
+            if not exclusive_roles:
+                return await ctx.send(f"**You cannot buy this exclusive item, {member.mention}!**")
+
+            if not set([mr.id for mr in member.roles]) & set(list(map(lambda er: er[0], exclusive_roles))):
+                return await ctx.send(f"**You don't have any of the required roles to buy this item, {member.mention}!**")
 
         await self.update_user_money(member.id, -regitem[3])
         await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
