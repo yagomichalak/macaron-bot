@@ -153,6 +153,18 @@ class RegisteredItemsTable(commands.Cog):
 
         return registered_items
 
+    async def update_item_exclusive(self, item_name: str, maybe: Optional[bool] = True) -> None:
+        """ Changes the item's exclusive state.
+        :param item_name: The name of the item to update.
+        :param maybe: Whether to make or unmake it exclusive. [Optional][Default = True] """
+
+        maybe = 1 if maybe else 0
+
+        mycursor, db = await the_database()
+        await mycursor.execute("UPDATE RegisteredItems SET exclusive = %s WHERE LOWER(item_name) = LOWER(%s)", (maybe, item_name))
+        await db.commit()
+        await mycursor.close()
+
     async def delete_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> None:
         """ Deletes a registered item.
         :param name: The name of the item to delete. [Optional]
@@ -504,7 +516,7 @@ class UserItemsSystem(commands.Cog):
             if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
 
             # pfp = await utils.get_user_pfp(member)
-            # background.paste(sloth, (0, 0), sloth)
+            # background.paste(pfp, (0, 0), pfp)
 
             # Saves the image
             file_path = f'media/temporary/character_{member.id}.png'
@@ -620,7 +632,7 @@ class UserItemsSystem(commands.Cog):
     @commands.command(aliases=["buy"])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def buy_item(self, ctx, *, item_name: str = None) -> None:
-        """ (ADM) Gives an item to a member.
+        """ (ADM) Buys an item from the shop.
         :param item_name: The name of the item. """
 
         item_name = escape_mentions(item_name)
@@ -628,13 +640,13 @@ class UserItemsSystem(commands.Cog):
         member: discord.Member = ctx.author
 
         if not item_name:
-            return await ctx.send("**Inform an item to add!**")
+            return await ctx.send("**Inform an item to buy!**")
 
         if await self.get_user_item(member.id, item_name):
             return await ctx.send(f"**You already have that item!**")
 
         if not (regitem := await self.get_registered_item(name=item_name)):
-            return await ctx.send(f"**This item doesn't exist, {ctx.author.mention}!**")
+            return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
 
         if not (user_profile := await self.get_macaron_profile(member.id)):
             await ctx.send(f"**You don't have any money to buy this item, {member.mention}!**")
@@ -649,6 +661,50 @@ class UserItemsSystem(commands.Cog):
         await self.update_user_money(member.id, -regitem[3])
         await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
         return await ctx.send(f"**You just bought `{regitem[2].title()}`, {member.name}!**")
+
+    @commands.command(aliases=["make_exclusive"])
+    @commands.has_permissions(administrator=True)
+    async def make_item_exclusive(self, ctx, *, item_name: str = None) -> None:
+        """ (ADM) Makes an item exclusive.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        member: discord.Member = ctx.author
+
+        if not item_name:
+            return await ctx.send("**Inform an item to update!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
+
+        if regitem[6]:
+            return await ctx.send(f"**This item is already exclusive, {member.mention}!**")
+
+        await self.update_item_exclusive(regitem[2])
+        return await ctx.send(f"**The `{regitem[2].title()}` item is now exclusive, {member.name}!**")
+
+    @commands.command(aliases=["unmake_exclusive"])
+    @commands.has_permissions(administrator=True)
+    async def unmake_item_exclusive(self, ctx, *, item_name: str = None) -> None:
+        """ (ADM) Makes an item not exclusive.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        member: discord.Member = ctx.author
+
+        if not item_name:
+            return await ctx.send("**Inform an item to update!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
+
+        if not regitem[6]:
+            return await ctx.send(f"**This item is not even exclusive, {member.mention}!**")
+
+        await self.update_item_exclusive(regitem[2], False)
+        return await ctx.send(f"**The `{regitem[2].title()}` item is no longer exclusive, {member.name}!**")
 
     @commands.command(aliases=["give_member_item", "add_item", "give_item"])
     @commands.has_permissions(administrator=True)

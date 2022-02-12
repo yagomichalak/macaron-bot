@@ -43,7 +43,9 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
 
         # Formats items
         formatted_items = [
-            f"**{regitem[2]}**: {self.crumbs_emoji} `{regitem[3]}` ({regitem[1]})" for regitem in filtered_items
+            f"**{regitem[2]}**: {self.crumbs_emoji} `{regitem[3]}` ({regitem[1]})" \
+            f"{' *' if regitem[6] else ''}"
+            for regitem in filtered_items
         ]
         if not formatted_items:
             if option == 'All':
