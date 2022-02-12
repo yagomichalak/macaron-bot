@@ -696,7 +696,7 @@ class UserItemsSystem(commands.Cog):
             await ctx.send(f"**You don't have any money to buy this item, {member.mention}!**")
             return await self.insert_macaron_profile(member.id)
 
-        if user_profile[1] <= regitem[3]:
+        if user_profile[1] < regitem[3]:
             return await ctx.send(f"**The item costs `{regitem[3]}`{self.crumbs_emoji}, you have `{user_profile[1]}`{self.crumbs_emoji}, {member.mention}!**")
 
         if regitem[6]:
