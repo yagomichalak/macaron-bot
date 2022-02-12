@@ -398,7 +398,7 @@ class UserItemsSystem(commands.Cog):
 
         self.client = client
 
-    @slash_command(name="custom_character", guild_ids=guild_ids)
+    @slash_command(name="character", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def _custom_character_slash_command(self, ctx, 
         member: Option(discord.Member, name="member", description="The member to whom create the profile.", required=False)) -> None:
@@ -415,7 +415,7 @@ class UserItemsSystem(commands.Cog):
         except:
             pass
 
-    @commands.command(name="character")
+    @commands.command(name="character", aliases=["custom_character"])
     @commands.cooldown(1, 5, commands.BucketType.user)
     async def _custom_character_command(self, ctx, member: Union[discord.Member, discord.User] = None) -> None:
         """ Makes a custom character image.
@@ -443,15 +443,15 @@ class UserItemsSystem(commands.Cog):
             background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds')).convert('RGBA')
             bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base')).convert('RGBA')
             eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes')).convert('RGBA')
+            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
             mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths')).convert('RGBA')
-            facil_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair')).convert('RGBA')
+            facial_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair')).convert('RGBA')
             face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture')).convert('RGBA')
             hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats')).convert('RGBA')
             left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands')).convert('RGBA')
             right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands')).convert('RGBA')
             accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1')).convert('RGBA')
             accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2')).convert('RGBA')
-            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
             outfits = Image.open(await self.get_user_specific_item_type(member.id, 'outfits')).convert('RGBA')
             dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
             
@@ -462,7 +462,8 @@ class UserItemsSystem(commands.Cog):
             # Pastes all item images
             if not 'bb_base' in hidden_icats: background.paste(bb_base, (0, 0), bb_base)
             if not 'eyes' in hidden_icats: background.paste(eyes, (0, 0), eyes)
-            if not 'facil_hair' in hidden_icats: background.paste(facil_hair, (0, 0), facil_hair)
+            if not 'facial_hair' in hidden_icats: background.paste(facial_hair, (0, 0), facial_hair)
+            if not 'effects' in hidden_icats: background.paste(effects, (0, 0), effects)
             if not 'mouths' in hidden_icats: background.paste(mouths, (0, 0), mouths)
             if not 'face_furniture' in hidden_icats: background.paste(face_furniture, (0, 0), face_furniture)
             if not 'hats' in hidden_icats: background.paste(hats, (0, 0), hats)
@@ -470,7 +471,6 @@ class UserItemsSystem(commands.Cog):
             if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
             if not 'accessories_1' in hidden_icats: background.paste(accessories_1, (0, 0), accessories_1)
             if not 'accessories_2' in hidden_icats: background.paste(accessories_2, (0, 0), accessories_2)
-            if not 'effects' in hidden_icats: background.paste(effects, (0, 0), effects)
             if not 'outfits' in hidden_icats: background.paste(outfits, (0, 0), outfits)
             if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
 
@@ -557,10 +557,10 @@ class UserItemsSystem(commands.Cog):
         if not item_name:
             return await ctx.send("**Inform an item to unequip!**")
 
-        if not await self.get_user_item(member.id, item_name):
+        if not (user_item := await self.get_user_item(member.id, item_name)):
             return await ctx.send(f"**You don't have this item, {member.mention}!**")
 
-        if await self.check_user_can_change_item_state(member.id, item_name):
+        if not user_item[2]:
             return await ctx.send(f"**This item is already unequipped, {member.mention}!**")
 
         await self.update_item_equipped(member.id, item_name)
@@ -573,19 +573,22 @@ class UserItemsSystem(commands.Cog):
         :param enable: Whether to check if you can equip or unequip. """
 
         mycursor, _ = await the_database()
+        await mycursor.execute("SELECT item_type FROM UserItems WHERE user_id = %s AND item_name = %s", (user_id, item_name))
+        item_type = await mycursor.fetchone()
+
         enable = 1 if enable else 0
         await mycursor.execute(
-            "SELECT * FROM UserItems WHERE user_id = %s AND LOWER(item_name) = LOWER(%s) AND enable = %s", (user_id, item_name, enable))
-        item = await mycursor.fetchone()
+            "SELECT * FROM UserItems WHERE user_id = %s AND LOWER(item_type) = LOWER(%s) AND enable = %s", (user_id, item_type, enable))
+        equipped_item = await mycursor.fetchone()
         await mycursor.close()
 
-        if item:
+        if equipped_item and item_type:
             return True
-        else:
-            return False
+
+        return False
 
 
-    @commands.command(aliases=["give_member_item"])
+    @commands.command(aliases=["give_member_item", "add_item", "give_item"])
     @commands.has_permissions(administrator=True)
     async def add_member_item(self, ctx, member: discord.Member = None, *, item_name: str = None) -> None:
         """ (ADM) Gives an item to a member.
@@ -609,7 +612,7 @@ class UserItemsSystem(commands.Cog):
         await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
         return await ctx.send(f"**Successfully given `{regitem[2].title()}` to {member.name}!**")
 
-    @commands.command(aliases=["delete_member_item"])
+    @commands.command(aliases=["delete_member_item", "remove_item", "delete_item"])
     @commands.has_permissions(administrator=True)
     async def remove_member_item(self, ctx, member: discord.Member = None, *, item_name: str = None) -> None:
         """ (ADM) Gives an item to a member.
