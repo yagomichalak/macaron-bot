@@ -40,6 +40,7 @@ class RegisteredItemsTable(commands.Cog):
                 item_price INT NOT NULL,
                 message_ref BIGINT DEFAULT NULL,
                 reaction_ref VARCHAR(50) DEFAULT NULL,
+                exclusive TINYINT(1) DEFAULT 0,
                 PRIMARY KEY(image_name)
             ) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
         """)
@@ -91,21 +92,24 @@ class RegisteredItemsTable(commands.Cog):
             return False
 
     async def insert_registered_item(self, 
-        name: str, kind: str, price: int, image_name: str, message_id: Optional[int] = None, emoji: Optional[str] = None) -> None:
+        name: str, kind: str, price: int, image_name: str, message_id: Optional[int] = None, emoji: Optional[str] = None, exclusive: Optional[bool] = False) -> None:
         """ Inserts a Registered Item.
         :param name: The name of the item.
         :param kind: The type of the item.
         :param price: The price of the item.
         :param image_name: The item image name.
         :param message_id: The ID of the messsage from which you'll buy the item. [Optional]
-        :param emoji: The emoji you'll use to buy the item. [Optional] """
+        :param emoji: The emoji you'll use to buy the item. [Optional]
+        :param exclusive: Whether it's an exclusive item. [Optional][Default = False] """
+
+        exclusive = 1 if exclusive else 0
 
         mycursor, db = await the_database()
         await mycursor.execute("""
             INSERT INTO RegisteredItems (
-                item_name, item_type, item_price, image_name, message_ref, reaction_ref
-            ) VALUES (%s, %s, %s, %s, %s, %s)
-        """, (name, kind, price, image_name, message_id, emoji))
+                item_name, item_type, item_price, image_name, message_ref, reaction_ref, exclusive
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+        """, (name, kind, price, image_name, message_id, emoji, exclusive))
         await db.commit()
         await mycursor.close()
 
@@ -185,6 +189,7 @@ class RegisteredItemsSystem(commands.Cog):
         ], required=True),
         price: Option(int, name="price", description="The item price.", required=True),
         image_name: Option(str, name="image_name", description="The item image name.", required=True),
+        exclusive: Option(bool, name="exclusive", description="Whether the item is exclusive.", required=False, default=False),
         message_id: Option(str, name="message_id", description="The ID of the message from which you'll buy the item.", required=False),
         emoji: Option(str, name="emoji", description="The emoji that'll be used to buy the item.", required=False),
     ) -> None:
@@ -201,7 +206,7 @@ class RegisteredItemsSystem(commands.Cog):
         if await self.get_registered_item(name, image_name):
             return await ctx.respond(f"**This item is already registered, {member.mention}!**")
         
-        await self.insert_registered_item(name, kind, price, image_name, message_id, emoji)
+        await self.insert_registered_item(name, kind, price, image_name, message_id, emoji, exclusive)
         await ctx.respond(f"**Successfully registered the `{name}` item, {member.mention}!**")
 
 
@@ -611,6 +616,39 @@ class UserItemsSystem(commands.Cog):
 
         return False
 
+
+    @commands.command(aliases=["buy"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def buy_item(self, ctx, *, item_name: str = None) -> None:
+        """ (ADM) Gives an item to a member.
+        :param item_name: The name of the item. """
+
+        item_name = escape_mentions(item_name)
+
+        member: discord.Member = ctx.author
+
+        if not item_name:
+            return await ctx.send("**Inform an item to add!**")
+
+        if await self.get_user_item(member.id, item_name):
+            return await ctx.send(f"**You already have that item!**")
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {ctx.author.mention}!**")
+
+        if not (user_profile := await self.get_macaron_profile(member.id)):
+            await ctx.send(f"**You don't have any money to buy this item, {member.mention}!**")
+            return await self.insert_macaron_profile(member.id)
+
+        if user_profile[1] <= regitem[3]:
+            return await ctx.send(f"**The item costs `{regitem[3]}`{self.crumbs_emoji}, you have `{user_profile[1]}`{self.crumbs_emoji}, {member.mention}!**")
+
+        if regitem[6]:
+            return await ctx.send(f"**You cannot buy this exclusive item, {member.mention}!**")
+
+        await self.update_user_money(member.id, -regitem[3])
+        await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
+        return await ctx.send(f"**You just bought `{regitem[2].title()}`, {member.name}!**")
 
     @commands.command(aliases=["give_member_item", "add_item", "give_item"])
     @commands.has_permissions(administrator=True)
