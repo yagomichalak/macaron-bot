@@ -1,6 +1,6 @@
 import discord
 from discord.ext import commands
-from typing import List, Union
+from typing import List, Union, Optional
 
 class ChangeItemCategoryMenuSelect(discord.ui.Select):
     def __init__(self, registered_items: List[List[Union[str, int]]]):
@@ -28,8 +28,11 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         await interaction.edit_original_message(view=self.view)
 
 
-    async def sort_registered_items(self, option = 'All') -> List[str]:
-        """ Sorts the registered items. """
+    async def sort_registered_items(self, option = 'All', exclusive: Optional[bool] = False) -> List[str]:
+        """ Sorts the registered items.
+        :param exclusive: Whether to show exclusive items. [Optional][Default = False] """
+
+        exclusive = 1 if exclusive else 0
 
         # Filters items
         filtered_items: List[List[Union[str, int]]] = []
@@ -41,10 +44,12 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         else:
             filtered_items = self.registered_items
 
+        # Filter exclusive / not exclusive items
+        filtered_items = list(filter(lambda item: item[6] == exclusive, filtered_items))
+
         # Formats items
         formatted_items = [
-            f"**{regitem[2]}**: {self.crumbs_emoji} `{regitem[3]}` ({regitem[1]})" \
-            f"{' *' if regitem[6] else ''}"
+            f"**{regitem[2]}**: {self.crumbs_emoji} `{regitem[3]}` ({regitem[1]})"
             for regitem in filtered_items
         ]
         if not formatted_items:

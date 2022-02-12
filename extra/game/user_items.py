@@ -267,6 +267,53 @@ class RegisteredItemsSystem(commands.Cog):
         paginator = pages.Paginator(pages=formatted_items, custom_view=view)
         await paginator.send(ctx)
 
+    @slash_command(name="black_market", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _show_exclusive_registered_items_slash_command(self, ctx,
+        item_category: Option(str, name="item_category", description="The item category to show.", choices=[
+            'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+        ], required=False, default='All')) -> None:
+        """ Shows all exclusive registered items. """
+
+        await ctx.defer()
+        registered_items = await self.get_registered_items_ordered_by_price()
+
+        self.pages = registered_items
+        view = discord.ui.View()
+        select = ChangeItemCategoryMenuSelect(registered_items)
+        formatted_items = await select.sort_registered_items(item_category)
+        # view.add_item(select)
+
+        paginator = pages.Paginator(pages=formatted_items, custom_view=view)
+        await paginator.respond(ctx.interaction, ephemeral=False)
+
+    @commands.command(name="black_market", aliases=[
+        "show_exclusive_items", "exclusive_items", "exclusiveitems",
+        "blackmarket", "blackshop", "show_exclusive" "showexclusive"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    async def _show_exclusive_registered_items_command(self, ctx, item_category: Optional[str] = 'All') -> None:
+        """ Shows all exclusive registered items.
+        :param item_category: The item category to show. [Optional][Default = All] """
+
+        member: discord.Member = ctx.author
+        if item_category.lower() != 'all':
+            if item_category.lower() not in self.item_categories:
+                return await ctx.send(
+                    f"**Please, inform a valid item category, {member.mention}!**\n`{', '.join(self.item_categories)}`")
+
+
+        registered_items = await self.get_registered_items_ordered_by_price()
+
+        self.pages = registered_items
+        view = discord.ui.View()
+        select = ChangeItemCategoryMenuSelect(registered_items)
+        formatted_items = await select.sort_registered_items(item_category, exclusive=True)
+        # view.add_item(select)
+
+        paginator = pages.Paginator(pages=formatted_items, custom_view=view)
+        await paginator.send(ctx)
+
 
     @slash_command(name="unregister_item", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
