@@ -679,12 +679,12 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Buys an item from the shop.
         :param item_name: The name of the item. """
 
-        item_name = escape_mentions(item_name)
-
         member: discord.Member = ctx.author
 
         if not item_name:
             return await ctx.send("**Inform an item to buy!**")
+
+        item_name = escape_mentions(item_name)
 
         if await self.get_user_item(member.id, item_name):
             return await ctx.send(f"**You already have that item!**")
@@ -717,12 +717,12 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Makes an item exclusive.
         :param item_name: The name of the item. """
 
-        item_name = escape_mentions(item_name)
-
         member: discord.Member = ctx.author
 
         if not item_name:
             return await ctx.send("**Inform an item to update!**")
+
+        item_name = escape_mentions(item_name)
 
         if not (regitem := await self.get_registered_item(name=item_name)):
             return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
@@ -739,12 +739,12 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Makes an item not exclusive.
         :param item_name: The name of the item. """
 
-        item_name = escape_mentions(item_name)
-
         member: discord.Member = ctx.author
 
         if not item_name:
             return await ctx.send("**Inform an item to update!**")
+
+        item_name = escape_mentions(item_name)
 
         if not (regitem := await self.get_registered_item(name=item_name)):
             return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
@@ -763,13 +763,13 @@ class UserItemsSystem(commands.Cog):
         :param member: The member to give the item.
         :param item_name: The name of the item. """
 
-        item_name = escape_mentions(item_name)
-
         if not member:
             return await ctx.send("**Inform a member!**")
 
         if not item_name:
             return await ctx.send("**Inform an item to add!**")
+
+        item_name = escape_mentions(item_name)
 
         if await self.get_user_item(member.id, item_name):
             return await ctx.send(f"**{member.name} already has that item!**")
@@ -787,13 +787,13 @@ class UserItemsSystem(commands.Cog):
         :param member: The member to give the item.
         :param item_name: The name of the item. """
 
-        item_name = escape_mentions(item_name)
-
         if not member:
             return await ctx.send("**Inform a member!**")
 
         if not item_name:
             return await ctx.send("**Inform an item to add!**")
+
+        item_name = escape_mentions(item_name)
 
         if not await self.get_user_item(member.id, item_name):
             return await ctx.send(f"**{member.name} doesn't even have that item!**")
@@ -868,7 +868,6 @@ class UserItemsSystem(commands.Cog):
         :param item_category: The category to unhide. """
 
         member: discord.Member = ctx.author
-        item_category = escape_mentions(item_category)
         await self._hide_unhide_command_callback(ctx, member, item_category, False)
 
     async def _hide_unhide_command_callback(self, ctx, member: discord.Member, item_category: str, hide: Optional[bool] = True) -> None:
@@ -960,7 +959,6 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Adds an exclusive item role. """
 
         await ctx.defer()
-        item_name = escape_mentions(item_name)
         await self._add_exclusive_item_role_callback(ctx, role, item_name)
 
     @commands.command(name="add_exclusive_item_role", aliases=["add_exclusive_role", "addexclusive", "add_exclusive"])
@@ -969,8 +967,6 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Adds an exclusive item role.
         :param role: The role to add access to the item.
         :param item_name: The name of the item. """
-
-        item_name = escape_mentions(item_name)
 
         await self._add_exclusive_item_role_callback(ctx, role, item_name)
 
@@ -988,6 +984,8 @@ class UserItemsSystem(commands.Cog):
 
         if not item_name:
             return await answer(f"**Inform an item to attach to the role, {member.mention}!**")
+
+        item_name = escape_mentions(item_name)
 
         if not (regitem := await self.get_registered_item(name=item_name)):
             return await answer(f"**This item doesn't exist, {member.mention}!**")
@@ -1008,7 +1006,6 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Removes an exclusive item role. """
 
         await ctx.defer()
-        item_name = escape_mentions(item_name)
         await self._delete_exclusive_item_role_callback(ctx, item_name, role)
 
     @commands.command(name="delete_exclusive_item_role", aliases=[
@@ -1021,8 +1018,6 @@ class UserItemsSystem(commands.Cog):
         :param role: The role to remove access from the item.
         :param item_name: The name of the item. """
 
-        item_name = escape_mentions(item_name)
-
         await self._delete_exclusive_item_role_callback(ctx, item_name, role)
 
     @slash_command(name="delete_exclusive_item_roles", guild_ids=guild_ids)
@@ -1032,7 +1027,6 @@ class UserItemsSystem(commands.Cog):
         """ (ADM) Removes all exclusive item roles from an item. """
 
         await ctx.defer()
-        item_name = escape_mentions(item_name)
         await self._delete_exclusive_item_role_callback(ctx, item_name, all=True)
 
     @commands.command(name="delete_exclusive_item_roles", aliases=[
@@ -1043,8 +1037,6 @@ class UserItemsSystem(commands.Cog):
     async def _delete_exclusive_item_roles_command(self, ctx, *, item_name: str = None) -> None:
         """ (ADM) Removes all exclusive item roles.
         :param item_name: The name of the item. """
-
-        item_name = escape_mentions(item_name)
 
         await self._delete_exclusive_item_role_callback(ctx, item_name, all=True)
 
@@ -1063,6 +1055,8 @@ class UserItemsSystem(commands.Cog):
 
         if not item_name:
             return await answer(f"**Inform an item to dettach from the role, {member.mention}!**")
+
+        item_name = escape_mentions(item_name)
 
         if not (regitem := await self.get_registered_item(name=item_name)):
             return await answer(f"**This item doesn't exist, {member.mention}!**")
