@@ -154,6 +154,16 @@ class RegisteredItemsTable(commands.Cog):
 
         return registered_items
 
+    async def update_item_price(self, item_name: str, new_price: int) -> None:
+        """ Changes the item's exclusive state.
+        :param item_name: The name of the item to update.
+        :param price: The new price to update the item to. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("UPDATE RegisteredItems SET item_price = %s WHERE LOWER(item_name) = LOWER(%s)", (new_price, item_name))
+        await db.commit()
+        await mycursor.close()
+
     async def update_item_exclusive(self, item_name: str, maybe: Optional[bool] = True) -> None:
         """ Changes the item's exclusive state.
         :param item_name: The name of the item to update.
@@ -203,6 +213,24 @@ class RegisteredItemsSystem(commands.Cog):
 
         self.client = client
 
+    @slash_command(name="edit_item", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.has_permissions(administrator=True)
+    async def _edit_item_slash_command(self, ctx,
+        name: Option(str, name="name", description="The name of the item to edit."),
+        price: Option(int, name="price", description="The new price to update the item to.")
+    ) -> None:
+        """ Edit the item's price. """
+
+        await ctx.defer()
+        member: discord.Member = ctx.author
+        
+        if not await self.get_registered_item(name):
+            return await ctx.respond(f"**This item doesn't even exist, {member.mention}!**")
+        
+        await self.update_item_price(name, price)
+        await ctx.respond(f"**Successfully updated the `{name}` item's price to `{price}` {self.crumbs_emoji}, {member.mention}!**")
+
     @slash_command(name="register_item", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
     @commands.has_permissions(administrator=True)
@@ -220,6 +248,7 @@ class RegisteredItemsSystem(commands.Cog):
     ) -> None:
         """ Registers an item for people to buy it. """
 
+        await ctx.defer()
         member: discord.Member = ctx.author
 
         if message_id:
