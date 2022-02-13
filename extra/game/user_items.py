@@ -588,10 +588,10 @@ class UserItemsSystem(commands.Cog):
             if not 'mouths' in hidden_icats: background.paste(mouths, (0, 0), mouths)
             if not 'face_furniture' in hidden_icats: background.paste(face_furniture, (0, 0), face_furniture)
             if not 'hats' in hidden_icats: background.paste(hats, (0, 0), hats)
-            if not 'left_hands' in hidden_icats: background.paste(left_hands, (0, 0), left_hands)
-            if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
             if not 'accessories_2' in hidden_icats: background.paste(accessories_2, (0, 0), accessories_2)
             if not 'outfits' in hidden_icats: background.paste(outfits, (0, 0), outfits)
+            if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
+            if not 'left_hands' in hidden_icats: background.paste(left_hands, (0, 0), left_hands)
             if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
 
             # pfp = await utils.get_user_pfp(member)
