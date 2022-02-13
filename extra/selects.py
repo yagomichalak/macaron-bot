@@ -28,9 +28,10 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         await interaction.edit_original_message(view=self.view)
 
 
-    async def sort_registered_items(self, option = 'All', exclusive: Optional[bool] = False) -> List[str]:
+    async def sort_registered_items(self, option = 'All', exclusive: Optional[bool] = False, hidden: Optional[bool] = False) -> List[str]:
         """ Sorts the registered items.
-        :param exclusive: Whether to show exclusive items. [Optional][Default = False] """
+        :param exclusive: Whether to show exclusive items. [Optional][Default = False] 
+        :param hidden: Whether to show hidden items. [Optional][Default = False] """
 
         exclusive = 1 if exclusive else 0
 
@@ -45,7 +46,11 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
             filtered_items = self.registered_items
 
         # Filter exclusive / not exclusive items
-        filtered_items = list(filter(lambda item: item[6] == exclusive, filtered_items))
+        if hidden:
+            filtered_items = list(filter(lambda item: item[7], filtered_items))
+        else:
+            filtered_items = list(filter(
+                lambda item: item[6] == exclusive and not item[7], filtered_items))
 
         # Formats items
         formatted_items = [

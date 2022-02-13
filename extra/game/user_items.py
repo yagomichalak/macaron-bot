@@ -41,6 +41,7 @@ class RegisteredItemsTable(commands.Cog):
                 message_ref BIGINT DEFAULT NULL,
                 reaction_ref VARCHAR(50) DEFAULT NULL,
                 exclusive TINYINT(1) DEFAULT 0,
+                hidden TINYINT(1) DEFAULT 0,
                 PRIMARY KEY(image_name)
             ) CHARSET utf8mb4 COLLATE utf8mb4_unicode_ci
         """)
@@ -165,6 +166,18 @@ class RegisteredItemsTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
+    async def update_item_hidden(self, item_name: str, maybe: Optional[bool] = True) -> None:
+        """ Changes the item's hidden state.
+        :param item_name: The name of the item to update.
+        :param maybe: Whether to make or unmake it hidden. [Optional][Default = True] """
+
+        maybe = 1 if maybe else 0
+
+        mycursor, db = await the_database()
+        await mycursor.execute("UPDATE RegisteredItems SET hidden = %s WHERE LOWER(item_name) = LOWER(%s)", (maybe, item_name))
+        await db.commit()
+        await mycursor.close()
+
     async def delete_registered_item(self, name: Optional[str] = None, image_name: Optional[str] = None) -> None:
         """ Deletes a registered item.
         :param name: The name of the item to delete. [Optional]
@@ -266,6 +279,28 @@ class RegisteredItemsSystem(commands.Cog):
 
         paginator = pages.Paginator(pages=formatted_items, custom_view=view)
         await paginator.send(ctx)
+
+    @slash_command(name="hidden_items", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.has_permissions(administrator=True)
+    async def _show_hidden_registered_items_slash_command(self, ctx,
+        item_category: Option(str, name="item_category", description="The item category to show.", choices=[
+            'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+        ], required=False, default='All')) -> None:
+        """ Shows all hidden registered items. """
+
+        await ctx.defer(ephemeral=True)
+        registered_items = await self.get_registered_items_ordered_by_price()
+
+        self.pages = registered_items
+        view = discord.ui.View()
+        select = ChangeItemCategoryMenuSelect(registered_items)
+        formatted_items = await select.sort_registered_items(item_category, hidden=True)
+        # view.add_item(select)
+
+        paginator = pages.Paginator(pages=formatted_items, custom_view=view)
+        await paginator.respond(ctx.interaction, ephemeral=True)
 
     @slash_command(name="black_market", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -699,6 +734,9 @@ class UserItemsSystem(commands.Cog):
         if user_profile[1] < regitem[3]:
             return await ctx.send(f"**The item costs `{regitem[3]}`{self.crumbs_emoji}, you have `{user_profile[1]}`{self.crumbs_emoji}, {member.mention}!**")
 
+        if regitem[7]:
+            return await ctx.send(f"**You cannot buy a hidden item, {member.mention}!**")
+
         if regitem[6]:
             exclusive_roles = await self.get_exclusive_item_roles(regitem[2])
             if not exclusive_roles:
@@ -710,6 +748,50 @@ class UserItemsSystem(commands.Cog):
         await self.update_user_money(member.id, -regitem[3])
         await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
         return await ctx.send(f"**You just bought `{regitem[2].title()}`, {member.name}!**")
+
+    @commands.command(aliases=["make_hidden"])
+    @commands.has_permissions(administrator=True)
+    async def make_item_hidden(self, ctx, *, item_name: str = None) -> None:
+        """ (ADM) Makes an item hidden.
+        :param item_name: The name of the item. """
+
+        member: discord.Member = ctx.author
+
+        if not item_name:
+            return await ctx.send("**Inform an item to update!**")
+
+        item_name = escape_mentions(item_name)
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
+
+        if regitem[7]:
+            return await ctx.send(f"**This item is already hidden, {member.mention}!**")
+
+        await self.update_item_hidden(regitem[2])
+        return await ctx.send(f"**The `{regitem[2].title()}` item is now hidden, {member.name}!**")
+
+    @commands.command(aliases=["unmake_hidden"])
+    @commands.has_permissions(administrator=True)
+    async def unmake_item_hidden(self, ctx, *, item_name: str = None) -> None:
+        """ (ADM) Makes an item not hidden.
+        :param item_name: The name of the item. """
+
+        member: discord.Member = ctx.author
+
+        if not item_name:
+            return await ctx.send("**Inform an item to update!**")
+
+        item_name = escape_mentions(item_name)
+
+        if not (regitem := await self.get_registered_item(name=item_name)):
+            return await ctx.send(f"**This item doesn't exist, {member.mention}!**")
+
+        if not regitem[7]:
+            return await ctx.send(f"**This item is not even hidden, {member.mention}!**")
+
+        await self.update_item_hidden(regitem[2], False)
+        return await ctx.send(f"**The `{regitem[2].title()}` item is no longer hidden, {member.name}!**")
 
     @commands.command(aliases=["make_exclusive"])
     @commands.has_permissions(administrator=True)
