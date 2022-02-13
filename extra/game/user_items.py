@@ -1146,6 +1146,47 @@ class HiddenItemCategoryTable(commands.Cog):
         else:
             return False
 
+    async def insert_hidden_item_category(self, user_id: int, item_category: str) -> None:
+        """ Inserts a Hidden Item Category for the user.
+        :param user_id: The ID of the user.
+        :param item_category: The item category to hide. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("INSERT INTO HiddenItemCategory (user_id, item_type) VALUES (%s, %s)", (user_id, item_category.lower()))
+        await db.commit()
+        await mycursor.close()
+
+    async def get_hidden_item_category(self, user_id: int, item_category: str) -> List[Union[int, str]]:
+        """ Gets a specific Hidden Item Category.
+        :param user_id: The ID of the user from whom to get it.
+        :param item_category: The item category to get. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SELECT * FROM HiddenItemCategory WHERE user_id = %s AND item_type = %s", (user_id, item_category.lower()))
+        hidden_item_category = await mycursor.fetchone()
+        await mycursor.close()
+        return hidden_item_category
+
+    async def get_hidden_item_categories(self, user_id: int) -> List[List[Union[int, str]]]:
+        """ Gets all Hidden Item Categories from the user.
+        :param user_id: The ID of the user from whom to get them. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("SELECT * FROM HiddenItemCategory WHERE user_id = %s", (user_id,))
+        hidden_item_categories = await mycursor.fetchall()
+        await mycursor.close()
+        return hidden_item_categories
+
+    async def delete_hidden_item_category(self, user_id: int, item_category: str) -> None:
+        """ Deletes a Hidden Item Category.
+        :param user_id: The ID of the user from whom to delete it.
+        :param item_category: The category to delete. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM HiddenItemCategory WHERE user_id = %s AND item_type = %s", (user_id, item_category))
+        await db.commit()
+        await mycursor.close()
+
 class ExclusiveItemRoleTable(commands.Cog):
     """ Class for managing the ExclusiveItemRole table in the database. """
 
