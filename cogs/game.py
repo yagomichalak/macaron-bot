@@ -182,7 +182,7 @@ class Game(*game_cogs):
     @slash_command(name="play", guild_ids=guild_ids)
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
-            'A1', 'A2', 'B1', 'B2', 'C1', 'C2'], required=False, default='A1')) -> None:
+            'A1', 'A2', 'B1', 'B2', 'C1-C2'], required=False, default='A1')) -> None:
         """ Plays the game. """
 
         member: discord.Member = ctx.author
