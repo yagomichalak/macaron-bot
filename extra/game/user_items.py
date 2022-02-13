@@ -545,6 +545,7 @@ class UserItemsSystem(commands.Cog):
             hidden_icats = list(map(lambda ic: ic[1], all_hidden_icats))
 
             # Pastes all item images
+            if not 'accessories_1' in hidden_icats: background.paste(accessories_1, (0, 0), accessories_1)
             if not 'bb_base' in hidden_icats: background.paste(bb_base, (0, 0), bb_base)
             if not 'eyes' in hidden_icats: background.paste(eyes, (0, 0), eyes)
             if not 'facial_hair' in hidden_icats: background.paste(facial_hair, (0, 0), facial_hair)
@@ -554,7 +555,6 @@ class UserItemsSystem(commands.Cog):
             if not 'hats' in hidden_icats: background.paste(hats, (0, 0), hats)
             if not 'left_hands' in hidden_icats: background.paste(left_hands, (0, 0), left_hands)
             if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
-            if not 'accessories_1' in hidden_icats: background.paste(accessories_1, (0, 0), accessories_1)
             if not 'accessories_2' in hidden_icats: background.paste(accessories_2, (0, 0), accessories_2)
             if not 'outfits' in hidden_icats: background.paste(outfits, (0, 0), outfits)
             if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
