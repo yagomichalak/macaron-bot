@@ -238,7 +238,7 @@ class RegisteredItemsSystem(commands.Cog):
         name: Option(str, name="name", description="The item name.", required=True),
         kind: Option(str, name="type", description="The item type.", choices=[
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
-            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits', 'pets'
         ], required=True),
         price: Option(int, name="price", description="The item price.", required=True),
         image_name: Option(str, name="image_name", description="The item image name.", required=True),
@@ -269,7 +269,7 @@ class RegisteredItemsSystem(commands.Cog):
     async def _show_registered_items_slash_command(self, ctx,
         item_category: Option(str, name="item_category", description="The item category to show.", choices=[
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
-            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits', 'pets'
         ], required=False, default='All')) -> None:
         """ Shows all registered items. """
 
@@ -315,7 +315,7 @@ class RegisteredItemsSystem(commands.Cog):
     async def _show_hidden_registered_items_slash_command(self, ctx,
         item_category: Option(str, name="item_category", description="The item category to show.", choices=[
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
-            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits', 'pets'
         ], required=False, default='All')) -> None:
         """ Shows all hidden registered items. """
 
@@ -336,7 +336,7 @@ class RegisteredItemsSystem(commands.Cog):
     async def _show_exclusive_registered_items_slash_command(self, ctx,
         item_category: Option(str, name="item_category", description="The item category to show.", choices=[
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 'dual_hands', 'effects', 'eyes', 
-            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits'
+            'face_furniture', 'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands', 'outfits', 'pets'
         ], required=False, default='All')) -> None:
         """ Shows all exclusive registered items. """
 
@@ -539,7 +539,7 @@ class UserItemsSystem(commands.Cog):
         'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
         'dual_hands', 'effects', 'eyes', 'face_furniture', 
         'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
-        'outfits'
+        'outfits', 'pets'
     ]
 
     def __init__(self, client: commands.Bot) -> None:
@@ -603,6 +603,7 @@ class UserItemsSystem(commands.Cog):
             accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2')).convert('RGBA')
             outfits = Image.open(await self.get_user_specific_item_type(member.id, 'outfits')).convert('RGBA')
             dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
+            pets = Image.open(await self.get_user_specific_item_type(member.id, 'pets')).convert('RGBA')
             
             # Gets the user's hidden item categories.
             all_hidden_icats = await self.get_hidden_item_categories(member.id)
@@ -622,6 +623,7 @@ class UserItemsSystem(commands.Cog):
             if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
             if not 'left_hands' in hidden_icats: background.paste(left_hands, (0, 0), left_hands)
             if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
+            if not 'pets' in hidden_icats: background.paste(pets, (0, 0), pets)
 
             # pfp = await utils.get_user_pfp(member)
             # background.paste(pfp, (0, 0), pfp)
@@ -939,7 +941,7 @@ class UserItemsSystem(commands.Cog):
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
             'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
-            'outfits'
+            'outfits', 'pets'
         ], required=True)) -> None:
         """ Hides an item category so it won't show on your custom profile. """
 
@@ -954,7 +956,7 @@ class UserItemsSystem(commands.Cog):
             'accessories_1', 'accessories_2', 'backgrounds', 'bb_base', 
             'dual_hands', 'effects', 'eyes', 'face_furniture', 
             'facial_hair', 'hats', 'left_hands', 'mouths', 'right_hands',
-            'outfits'
+            'outfits', 'pets'
         ], required=True)) -> None:
         """ Unhides an item category so it will show on your custom profile again.
         :param item_category: The category to unhide. """
