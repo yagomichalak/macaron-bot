@@ -18,6 +18,7 @@ from extra.game.user_items import (
     RegisteredItemsTable, RegisteredItemsSystem, UserItemsTable, 
     UserItemsSystem, HiddenItemCategoryTable, ExclusiveItemRoleTable
 )
+from extra.game.audio_files import AudioFilesTable
 
 server_id: int = int(os.getenv('SERVER_ID'))
 guild_ids: List[int] = [server_id]
@@ -25,7 +26,7 @@ guild_ids: List[int] = [server_id]
 game_cogs: List[commands.Cog] = [
     MacaronProfileTable, RegisteredItemsTable, RegisteredItemsSystem,
     UserItemsTable, UserItemsSystem, HiddenItemCategoryTable,
-    ExclusiveItemRoleTable
+    ExclusiveItemRoleTable, AudioFilesTable
 ]
 
 class Game(*game_cogs):
@@ -35,7 +36,7 @@ class Game(*game_cogs):
         """ Class init method. """
 
         self.client = client
-        self.difficulty_modes: List[str] = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2']
+        self.difficulty_modes: List[str] = ['A1', 'A2', 'B1', 'B2', 'C1-C2']
         self.player: discord.Member = None
         self.mode: str = None
         self.difficulty: str = None
