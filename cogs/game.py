@@ -248,11 +248,14 @@ class Game(*game_cogs):
             if not voice_client.is_playing():
                 audio_source = discord.FFmpegPCMAudio(f"{path}/audio.mp3")
                 text_source: str = await self.get_answer_text(f"{path}/answer.txt")
+                dialect_source: str = await self.get_answer_text(f"{path}/dialect.txt")
 
                 self.round += 1
                 embed = discord.Embed(
                     title=f"__`ROUND {self.round}`__",
-                    description="The audio starts now.",
+                    description="Try to understand what is being said in the following voice message, and type your answer below." \
+                        f"\n**Language:** {dialect_source}" \
+                        f"\n**Level:** {difficulty_mode}",
                     color=discord.Color.green()
                 )
                 await self.txt.send(embed=embed)
@@ -262,7 +265,8 @@ class Game(*game_cogs):
             # (to-do) send a message to a specific channel
             await self.txt.send("**The player left the voice channel, so it's game over!**")
             await self.reset_game_status()
-        await self.answer(f"**Let's play, {self.player.mention}!**")
+        if self.round == 1:
+            await self.answer(f"**Let's play, {self.player.mention}!**")
 
     async def reset_game_status(self) -> None:
         """ Clears the game status. """
@@ -404,10 +408,12 @@ class Game(*game_cogs):
         """ Gets the answer text.
         :param text_path: The path to the text file. """
 
-        text_source: str = ''
-        with open(text_path, 'r', encoding="utf-8") as f:
-            text_source: str = f.read()
-
+        text_source: str = '?'
+        try:
+            with open(text_path, 'r', encoding="utf-8") as f:
+                text_source: str = f.read()
+        except:
+            pass
         return text_source.strip()
 
     def generate_session_id(self, length: Optional[int] = 18) -> str:
