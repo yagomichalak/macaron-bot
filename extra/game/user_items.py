@@ -7,10 +7,11 @@ from external_cons import the_database
 from extra import utils
 from extra.selects import ChangeItemCategoryMenuSelect
 
-
 import os
-from typing import List, Optional, Any, Union, Dict
-from PIL import ImageDraw, ImageFont, Image
+from itertools import cycle
+from typing import List, Optional, Any, Union, Dict, Tuple
+from PIL import ImageDraw, ImageFont, Image, ImageSequence
+import asyncio
 
 guild_ids: List[int] = [int(os.getenv('SERVER_ID'))]
 
@@ -589,49 +590,116 @@ class UserItemsSystem(commands.Cog):
 
         # Open images
         async with ctx.typing():
-            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds')).convert('RGBA')
-            bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base')).convert('RGBA')
-            eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes')).convert('RGBA')
-            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects')).convert('RGBA')
-            mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths')).convert('RGBA')
-            facial_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair')).convert('RGBA')
-            face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture')).convert('RGBA')
-            hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats')).convert('RGBA')
-            left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands')).convert('RGBA')
-            right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands')).convert('RGBA')
-            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1')).convert('RGBA')
-            accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2')).convert('RGBA')
-            outfits = Image.open(await self.get_user_specific_item_type(member.id, 'outfits')).convert('RGBA')
-            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands')).convert('RGBA')
-            pets = Image.open(await self.get_user_specific_item_type(member.id, 'pets')).convert('RGBA')
+            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds'))
+            bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base'))
+            eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes'))
+            effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects'))
+            mouths = Image.open(await self.get_user_specific_item_type(member.id, 'mouths'))
+            facial_hair = Image.open(await self.get_user_specific_item_type(member.id, 'facial_hair'))
+            face_furniture = Image.open(await self.get_user_specific_item_type(member.id, 'face_furniture'))
+            hats = Image.open(await self.get_user_specific_item_type(member.id, 'hats'))
+            left_hands = Image.open(await self.get_user_specific_item_type(member.id, 'left_hands'))
+            right_hands = Image.open(await self.get_user_specific_item_type(member.id, 'right_hands'))
+            accessories_1 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_1'))
+            accessories_2 = Image.open(await self.get_user_specific_item_type(member.id, 'accessories_2'))
+            outfits = Image.open(await self.get_user_specific_item_type(member.id, 'outfits'))
+            dual_hands = Image.open(await self.get_user_specific_item_type(member.id, 'dual_hands'))
+            pets = Image.open(await self.get_user_specific_item_type(member.id, 'pets'))
             
             # Gets the user's hidden item categories.
             all_hidden_icats = await self.get_hidden_item_categories(member.id)
             hidden_icats = list(map(lambda ic: ic[1], all_hidden_icats))
 
             # Pastes all item images
-            if not 'accessories_1' in hidden_icats: background.paste(accessories_1, (0, 0), accessories_1)
-            if not 'bb_base' in hidden_icats: background.paste(bb_base, (0, 0), bb_base)
-            if not 'eyes' in hidden_icats: background.paste(eyes, (0, 0), eyes)
-            if not 'facial_hair' in hidden_icats: background.paste(facial_hair, (0, 0), facial_hair)
-            if not 'effects' in hidden_icats: background.paste(effects, (0, 0), effects)
-            if not 'mouths' in hidden_icats: background.paste(mouths, (0, 0), mouths)
-            if not 'face_furniture' in hidden_icats: background.paste(face_furniture, (0, 0), face_furniture)
-            if not 'hats' in hidden_icats: background.paste(hats, (0, 0), hats)
-            if not 'accessories_2' in hidden_icats: background.paste(accessories_2, (0, 0), accessories_2)
-            if not 'outfits' in hidden_icats: background.paste(outfits, (0, 0), outfits)
-            if not 'right_hands' in hidden_icats: background.paste(right_hands, (0, 0), right_hands)
-            if not 'left_hands' in hidden_icats: background.paste(left_hands, (0, 0), left_hands)
-            if not 'dual_hands' in hidden_icats: background.paste(dual_hands, (0, 0), dual_hands)
-            if not 'pets' in hidden_icats: background.paste(pets, (0, 0), pets)
-
+            items: Dict[str, Image.Image] = {
+                'accessories_1': accessories_1,
+                'bb_base': bb_base,
+                'eyes': eyes,
+                'facial_hair': facial_hair,
+                'effects': effects,
+                'mouths': mouths,
+                'face_furniture': face_furniture,
+                'hats': hats,
+                'accessories_2': accessories_2,
+                'outfits': outfits,
+                'right_hands': right_hands,
+                'left_hands': left_hands,
+                'dual_hands': dual_hands,
+                'pets': pets
+            }
             # pfp = await utils.get_user_pfp(member)
             # background.paste(pfp, (0, 0), pfp)
 
-            # Saves the image
-            file_path = f'media/temporary/character_{member.id}.png'
-            background.save(file_path, 'png', quality=90)
-            return file_path
+            # Gets all gif items
+            gif_files = {
+                item_name: {'frames': ImageSequence.Iterator(item_image), 'gif': item_image}
+                for item_name, item_image in items.items()
+                if item_image.is_animated and item_name not in hidden_icats
+            }
+
+            if gif_files:
+                frames: Optional[List[Image.Image]] = await self.paste_animated_items(
+                    background, member.id, items, gif_files, hidden_icats)
+
+            else:
+                await self.paste_items(background, items, hidden_icats)
+                # Saves the image
+                file_path = f'media/temporary/character_{member.id}.png'
+                background.save(file_path, 'png', quality=90)
+                return file_path
+
+    async def paste_items(self, base: Image.Image, items: List[Image.Image], hidden_icats) -> None:
+        """ Pastes images onto a base image..
+        :param base: The base image to paste other images onto.
+        :param items: The items to paste onto the base image. """
+
+        for item_name, item_image in items.items():
+            if item_name in hidden_icats: continue
+
+            item_image = item_image.convert('RGBA')
+            base.paste(item_image, (0, 0), item_image)
+
+    async def paste_animated_items(self, 
+        main_base: Image.Image, user_id: int, items: List[Image.Image], gif_files, hidden_icats
+    ) -> str:
+        """ Pastes images and gifs accordingly.
+        :param main_base: The base image to paste other images onto.
+        :param user_id: The ID of the user.
+        :param items: The items to paste onto the base image.
+        :param gif_files: The gif files to use.
+        :param hidden_icats: Hidden item categories. """
+
+        print('ma che')
+        gif_file_path: str = f'media/temporary/profile_{user_id}.gif'
+        try:
+            gif = GIF(image=main_base, frame_duration=40)
+
+            # Loops through the frames based on the amount of frames of the longest effect.
+            longest_gif = max([gif_file['gif'].n_frames for gif_file in gif_files.values()])
+            longest_gif = 1 if not longest_gif else longest_gif
+
+            for i in range(longest_gif):
+                base = gif.new_frame()
+                await asyncio.sleep(0)
+                for item_name, item_image in items.items():
+                    if item_name in hidden_icats: continue
+
+                    if not item_image.is_animated:
+                        item_image = item_image.convert('RGBA')
+                        base.paste(item_image, (0, 0), item_image)
+                    else:
+                        print('Ani. ', i)
+                        frame = next(gif_files[item_name]['frames']).convert('RGBA')
+                        base.paste(frame, (0, 0), frame)
+                    
+                    gif.add_frame(base)
+
+                if i >= 400:
+                    break
+        except Exception as e:
+            print(e)
+        finally:
+            return gif_file_path
 
     async def get_user_specific_item_type(self, user_id: int, item_type: str) -> str:
         """ Gets a random item of a specific type from the user.

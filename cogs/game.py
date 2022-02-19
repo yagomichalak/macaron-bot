@@ -90,10 +90,10 @@ class Game(*game_cogs):
                 pass
 
         drive = await the_drive()
+        async with ctx.typing():
+            for folder, folder_id in all_folders.items():
 
-        for folder, folder_id in all_folders.items():
-
-            await self.download_recursively(drive, 'resources', folder, folder_id)
+                await self.download_recursively(drive, 'resources', folder, folder_id)
 
         if ctx:
             await ctx.send("**Download audio update complete!**")
@@ -145,10 +145,10 @@ class Game(*game_cogs):
                 pass
 
         drive = await the_drive()
+        async with ctx.typing():
+            for folder, folder_id in all_folders.items():
 
-        for folder, folder_id in all_folders.items():
-
-            await self.download_recursively(drive, 'resources', folder, folder_id)
+                await self.download_recursively(drive, 'resources', folder, folder_id)
 
         if ctx:
             await ctx.send("**Download image update complete!**")
