@@ -72,9 +72,8 @@ class GIF:
     def export(self, path: str, **kwargs) -> None:
         """ Saves the gif.
         :param path: The path that the GIF is gonna be saved in. """
-
         image = self._base_image.copy()
-        image.paste(self._frames[0], self._frames[0])
+        image.paste(self._frames[0], (0, 0), self._frames[0].convert('RGBA'))
         image.save(path, "GIF", save_all=True, append_images=self._frames,
-                   duration=self._frame_duration, transparency=0, loop=0, **kwargs)
+                   duration=self._frame_duration, quality=90, loop=0, **kwargs)
 

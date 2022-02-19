@@ -6,6 +6,7 @@ from discord import slash_command, Option
 from external_cons import the_database
 from extra import utils
 from extra.selects import ChangeItemCategoryMenuSelect
+from extra.file_manipulation.gif_manager import GIF
 
 import os
 from itertools import cycle
@@ -558,12 +559,8 @@ class UserItemsSystem(commands.Cog):
             member = ctx.author
 
         await ctx.defer()
-        file_path: str = await self.create_user_custom_character(ctx, member)
-        await ctx.respond(file=discord.File(file_path, filename="custom_profile.png"))
-        try:
-            os.remove(file_path)
-        except:
-            pass
+        await self.create_user_custom_character(ctx, member)
+        
 
     @commands.command(name="character", aliases=["custom_character"])
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -574,23 +571,25 @@ class UserItemsSystem(commands.Cog):
         if not member:
             member = ctx.author
 
-        file_path: str = await self.create_user_custom_character(ctx, member)
-        await ctx.send(file=discord.File(file_path, filename="custom_profile.png"))
-        try:
-            os.remove(file_path)
-        except:
-            pass
+        await self.create_user_custom_character(ctx, member)
+        
 
-    async def create_user_custom_character(self, ctx, member: Union[discord.Member, discord.User]) -> str:
+    async def create_user_custom_character(self, ctx, member: Union[discord.Member, discord.User]) -> None:
         """ Creates the custom user character image.
         :param member: The member for whom to create the image. """
 
         # Font
         # small = ImageFont.truetype("media/fonts/built titling sb.ttf", 45)
+        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
 
         # Open images
         async with ctx.typing():
-            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds'))
+            rgb2xyz = (
+                0.412453, 0.357580, 0.180423, 0,
+                0.212671, 0.715160, 0.072169, 0,
+                0.019334, 0.119193, 0.950227, 0
+            )
+            background = Image.open(await self.get_user_specific_item_type(member.id, 'backgrounds'))#.convert('RGB', rgb2xyz)
             bb_base = Image.open(await self.get_user_specific_item_type(member.id, 'bb_base'))
             eyes = Image.open(await self.get_user_specific_item_type(member.id, 'eyes'))
             effects = Image.open(await self.get_user_specific_item_type(member.id, 'effects'))
@@ -637,42 +636,55 @@ class UserItemsSystem(commands.Cog):
                 if item_image.is_animated and item_name not in hidden_icats
             }
 
+            # Makes another dictionary with the items, marking if the items are animated or not
+            items = {
+                item_name: {'image': item_image.convert('RGBA'), 'animated': item_image.is_animated}
+                for item_name, item_image in items.items()
+                if item_name not in hidden_icats
+            }
+
             if gif_files:
-                frames: Optional[List[Image.Image]] = await self.paste_animated_items(
-                    background, member.id, items, gif_files, hidden_icats)
+                gif_file_path = await self.paste_animated_items(
+                    background, member.id, items, gif_files)
+                await answer(file=discord.File(gif_file_path))
+
+                try:
+                    os.remove(gif_file_path)
+                except:
+                    pass
 
             else:
-                await self.paste_items(background, items, hidden_icats)
+                await self.paste_items(background, items)
                 # Saves the image
                 file_path = f'media/temporary/character_{member.id}.png'
                 background.save(file_path, 'png', quality=90)
-                return file_path
+                await answer(file=discord.File(file_path))
+            
+                try:
+                    os.remove(file_path)
+                except:
+                    pass
 
-    async def paste_items(self, base: Image.Image, items: List[Image.Image], hidden_icats) -> None:
+    async def paste_items(self, base: Image.Image, items: List[Image.Image]) -> None:
         """ Pastes images onto a base image..
         :param base: The base image to paste other images onto.
         :param items: The items to paste onto the base image. """
 
-        for item_name, item_image in items.items():
-            if item_name in hidden_icats: continue
-
-            item_image = item_image.convert('RGBA')
-            base.paste(item_image, (0, 0), item_image)
+        for item_image in items.values():
+            base.paste(item_image['image'], (0, 0), item_image['image'])
 
     async def paste_animated_items(self, 
-        main_base: Image.Image, user_id: int, items: List[Image.Image], gif_files, hidden_icats
+        main_base: Image.Image, user_id: int, items: List[Image.Image], gif_files
     ) -> str:
         """ Pastes images and gifs accordingly.
         :param main_base: The base image to paste other images onto.
         :param user_id: The ID of the user.
         :param items: The items to paste onto the base image.
-        :param gif_files: The gif files to use.
-        :param hidden_icats: Hidden item categories. """
+        :param gif_files: The gif files to use. """
 
-        print('ma che')
         gif_file_path: str = f'media/temporary/profile_{user_id}.gif'
         try:
-            gif = GIF(image=main_base, frame_duration=40)
+            gif = GIF(image=main_base, frame_duration=5)
 
             # Loops through the frames based on the amount of frames of the longest effect.
             longest_gif = max([gif_file['gif'].n_frames for gif_file in gif_files.values()])
@@ -682,13 +694,10 @@ class UserItemsSystem(commands.Cog):
                 base = gif.new_frame()
                 await asyncio.sleep(0)
                 for item_name, item_image in items.items():
-                    if item_name in hidden_icats: continue
 
-                    if not item_image.is_animated:
-                        item_image = item_image.convert('RGBA')
-                        base.paste(item_image, (0, 0), item_image)
+                    if not item_image['animated']:
+                        base.paste(item_image['image'], (0, 0), item_image['image'])
                     else:
-                        print('Ani. ', i)
                         frame = next(gif_files[item_name]['frames']).convert('RGBA')
                         base.paste(frame, (0, 0), frame)
                     
@@ -696,6 +705,9 @@ class UserItemsSystem(commands.Cog):
 
                 if i >= 400:
                     break
+
+            gif.export(gif_file_path)
+
         except Exception as e:
             print(e)
         finally:
