@@ -190,10 +190,13 @@ class Game(*game_cogs):
         await ctx.defer()
 
         if difficulty.upper() not in self.difficulty_modes:
-            return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
+            return await ctx.respond(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if self.player:
             return await ctx.respond(f"**There's already someone playing with the bot, {member.mention}!**")
+
+        if not self.player.voice:
+            return await ctx.respond(f"**You need to be in a Voice Channel to run this command, {self.player.mention}!**")
 
         self.player = member
         self.difficulty = difficulty
@@ -214,6 +217,9 @@ class Game(*game_cogs):
 
         if self.player:
             return await ctx.send(f"**There's already someone playing with the bot, {member.mention}!**")
+        
+        if not self.player.voice:
+            return await ctx.send(f"**You need to be in a Voice Channel to run this command, {self.player.mention}!**")
 
         self.player = member
         self.difficulty = difficulty
