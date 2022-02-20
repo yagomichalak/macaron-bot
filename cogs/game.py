@@ -532,8 +532,11 @@ class Game(*game_cogs):
             'C1-C2': (10, 12),
         }
 
+        money_to_add: int = 0
+
         m_range_x, m_range_y = multipliers.get(difficulty.upper())
-        money_to_add = random.randint(m_range_x, m_range_y)
+        for _ in range(self.right_answers):
+            money_to_add += random.randint(m_range_x, m_range_y)
 
         if await self.get_macaron_profile(player.id):
             await self.update_macaron_profile_crumbs(player.id, crumbs=money_to_add, games_played=1, last_time_played=current_ts)
