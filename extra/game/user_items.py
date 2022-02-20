@@ -842,8 +842,12 @@ class UserItemsSystem(commands.Cog):
             await ctx.send(f"**You don't have any money to buy this item, {member.mention}!**")
             return await self.insert_macaron_profile(member.id)
 
-        if user_profile[1] < regitem[3]:
-            return await ctx.send(f"**The item costs `{regitem[3]}`{self.crumbs_emoji}, you have `{user_profile[1]}`{self.crumbs_emoji}, {member.mention}!**")
+        if regitem[6]:
+            if user_profile[4] < regitem[3]:
+                return await ctx.send(f"**The item costs `{regitem[3]}`{self.croutons_emoji}, you have `{user_profile[1]}`{self.croutons_emoji}, {member.mention}!**")
+        else:
+            if user_profile[1] < regitem[3]:
+                return await ctx.send(f"**The item costs `{regitem[3]}`{self.crumbs_emoji}, you have `{user_profile[1]}`{self.crumbs_emoji}, {member.mention}!**")
 
         if regitem[7]:
             return await ctx.send(f"**You cannot buy a hidden item, {member.mention}!**")
@@ -853,10 +857,16 @@ class UserItemsSystem(commands.Cog):
             if not exclusive_roles:
                 return await ctx.send(f"**You cannot buy this exclusive item, {member.mention}!**")
 
-            if not set([mr.id for mr in member.roles]) & set(list(map(lambda er: er[0], exclusive_roles))):
-                return await ctx.send(f"**You don't have any of the required roles to buy this item, {member.mention}!**")
+            eroles_ids = list(map(lambda er: er[0], exclusive_roles))
 
-        await self.update_user_crumbs(member.id, -regitem[3])
+            if not set([mr.id for mr in member.roles]) & set(eroles_ids):
+                required_roles = [f"{str(discord.utils.get(ctx.guild.roles, id=erole_id))}" for erole_id in eroles_ids]
+                return await ctx.send(f"**You don't have any of the required roles to buy this item, {member.mention}!**\n`{', '.join(required_roles)}`")
+
+        if regitem[6]:
+            await self.update_user_croutons(member.id, -regitem[3])
+        else:
+            await self.update_user_crumbs(member.id, -regitem[3])
         await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
         return await ctx.send(f"**You just bought `{regitem[2].title()}`, {member.name}!**")
 
@@ -1013,6 +1023,23 @@ class UserItemsSystem(commands.Cog):
     
         await self.update_user_crumbs(member.id, amount)
         await ctx.send(f"**Added `{amount}` {self.crumbs_emoji} to {member.mention}!**")
+
+    @commands.command(aliases=['addcroutons', 'give_croutons', 'givecroutons'])
+    @commands.has_permissions(administrator=True)
+    async def add_croutons(self, ctx, member: discord.Member = None, amount: int = None):
+        """ Adds croutons to a user.
+        :param member: The member to whom give the croutons.
+        :param amount: The amount of croutons to add. (Can be negative.) """
+
+        author: discord.Member = ctx.author
+        if not member:
+            return await ctx.send(f"**Please, inform a user to whom give the croutons, {author.mention}!**")
+
+        if amount is None:
+            return await ctx.send(f"**Please, inform an amount of croutons to give, {author.mention}!**")
+    
+        await self.update_user_croutons(member.id, amount)
+        await ctx.send(f"**Added `{amount}` {self.croutons_emoji} to {member.mention}!**")
 
     @slash_command(name="hide", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)

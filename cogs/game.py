@@ -51,6 +51,7 @@ class Game(*game_cogs):
         self.session_id: str = None
 
         self.crumbs_emoji: str = '<:crumbs:940086555224211486>'
+        self.croutons_emoji: str = '🍘'
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -566,7 +567,8 @@ class Game(*game_cogs):
 
         embed: discord.Embed = discord.Embed(
             title=f"{member}'s Profile",
-            description=f"**Money:** {profile[1]} crumbs {self.crumbs_emoji}.\n" \
+            description=f"**Crumbs:** {profile[1]} {self.crumbs_emoji}.\n" \
+                f"**Croutons:** {profile[4]} {self.croutons_emoji}.\n" \
                 f"**Games played:** {profile[2]}\n" \
                 f"**Last time played:** {last_time_played}",
                 color=member.color,

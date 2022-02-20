@@ -15,6 +15,7 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         self.registered_items = registered_items
         self.item_category: str = 'All'
         self.crumbs_emoji: str = '<:crumbs:940086555224211486>'
+        self.croutons_emoji: str = '🍘'
     
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()
@@ -52,9 +53,11 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
             filtered_items = list(filter(
                 lambda item: item[6] == exclusive and not item[7], filtered_items))
 
+        emoji = self.crumbs_emoji if not exclusive else self.croutons_emoji
+
         # Formats items
         formatted_items = [
-            f"**{regitem[2]}**: {self.crumbs_emoji} `{regitem[3]}` ({regitem[1]})"
+            f"**{regitem[2]}**: {emoji} `{regitem[3]}` ({regitem[1]})"
             for regitem in filtered_items
         ]
         if not formatted_items:
