@@ -229,7 +229,7 @@ class Game(*game_cogs):
             return await ctx.send(f"**You need to be in a Voice Channel to run this command, {member.mention}!**")
 
         if member.voice.channel.id != self.vc.id:
-            return await ctx.respond(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
+            return await ctx.send(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
         self.player = member
         self.difficulty = difficulty
@@ -272,10 +272,9 @@ class Game(*game_cogs):
                 ))
                 if self.right_answers >= 1:
                     crumbs = await self.reward_user()
-                    await self.txt.send(f"""
-                        You've got `{crumbs}` crumbs {self.crumbs_emoji}!
-                        ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**"""
-                    )
+                    await self.txt.send(f"""**
+                    You've got `{crumbs}` crumbs {self.crumbs_emoji}!
+                    ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
                 return await self.stop_functionalities(self.player.guild)
 
             # Plays the song
