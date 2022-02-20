@@ -249,8 +249,16 @@ class Game(*game_cogs):
 
         # Checks if the bot is in the same voice channel that the user
         if voice and voice.channel == voice_client.channel:
+            # Gets reproduced files that are on cooldown
+            current_ts = await utils.get_timestamp()
+            raudio_files = await self.get_reproduced_audio_files(self.player.id, self.difficulty, current_ts)
+
             # Gets a random language audio
-            path, difficulty_mode, audio_folder = self.get_random_audio(self.difficulty)
+            path, difficulty_mode, audio_folder, fail = self.get_random_audio(raudio_files, current_ts)
+            if fail:
+                await self.txt.send(f"**We ran out of audios for you, come back in `24h`, {self.player.mention}!**")
+                return await self.stop_functionalities(self.player.guild)
+
             # Plays the song
             if not voice_client.is_playing():
                 audio_source = discord.FFmpegPCMAudio(f"{path}/audio.mp3")
@@ -266,6 +274,10 @@ class Game(*game_cogs):
                     color=discord.Color.green()
                 )
                 await self.txt.send(embed=embed)
+                if str(audio_folder) in list(map(lambda raf: raf[0], raudio_files)):
+                    await self.update_audio_file(self.player.id, audio_folder, self.difficulty, current_ts)
+                else:
+                    await self.insert_audio_file(self.player.id, audio_folder, self.difficulty, current_ts)
                 voice_client.play(audio_source, after=lambda e: self.client.loop.create_task(self.get_response(text_source)))
 
         else:
@@ -306,34 +318,51 @@ class Game(*game_cogs):
 
         return fuzz.ratio(player_answer.lower(), real_answer.lower())
 
-    def get_random_audio(self, difficulty: str = None) -> str:
+    def get_random_audio(self, raudio_files: List[str], current_ts: int) -> List[Union[str, bool, None]]:
         """ Gets a random audio.
-        :param difficulty: The difficulty mode for which to get the audio. """
+        :param raudio_files: The reproduced audio files.
+        :param current_ts: The current timestamp. """
+
+        on_cooldown_audios = list(
+            map(lambda oca: oca[0], 
+                filter(lambda raf: current_ts - raf[1] <= 86400, raudio_files)
+            )
+        )
+
+        path = './resources/Audio Files'
+
+        difficulty: str = self.difficulty
+        difficulty_mode: str = difficulty
+
+        all_difficulties = os.listdir(path)
+        all_audio_folders = os.listdir(f"{path}/{difficulty_mode}")
+
+        tries: int = 0
+        laudios: int = len(all_difficulties)
 
         while True:
+            tries += 1
             time.sleep(0.3)
             try:
-                path = './resources/Audio Files'
-                difficulty_mode: str = difficulty
                 if not difficulty:
-                    all_difficulties = os.listdir(path)
                     difficulty_mode = random.choice(all_difficulties)
 
-
-                all_audio_folders = os.listdir(f"{path}/{difficulty_mode}")
                 audio_folder = random.choice(all_audio_folders)
+                all_audio_folders.remove(audio_folder)
                 path = f"{path}/{difficulty_mode}/{audio_folder}"
 
                 # self.reproduced_audios.append(str(audio_folder))
                 # return path, difficulty_mode, audio_folder
-                if not str(audio_folder) in self.reproduced_audios:
+                if not str(audio_folder) in self.reproduced_audios and str(audio_folder) not in on_cooldown_audios:
                     self.reproduced_audios.append(str(audio_folder))
-                    return path, difficulty_mode, audio_folder
+                    return path, difficulty_mode, audio_folder, False
                 else:
                     continue
             except Exception:
-                print('Try harder...')
                 continue
+            finally:
+                if tries >= laudios:
+                    return None, None, None, True
 
     async def get_response(self, text_source: str) -> Any:
         """ Checks how correct is the user's answer.
@@ -391,7 +420,7 @@ class Game(*game_cogs):
                 
             if self.lives > 0:				
                 # Restarts the game if it's not the last round
-                if self.round < 3:
+                if self.round < 10:
                     await self.txt.send(f"**New round in 10 seconds...**")
                     await asyncio.sleep(10)
                     if self.player and self.session_id == session_id:
@@ -443,6 +472,19 @@ class Game(*game_cogs):
         session_id = "".join(temp)
         return session_id
 
+    
+    async def stop_functionalities(self, guild: discord.Guild) -> None:
+        """ Stops the functionalities of the game.
+        :param guild: The server. """
+
+        await self.reset_game_status()
+        voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=guild)
+        if voice_client and voice_client.is_playing():
+            self.status = 'stop'
+            voice_client.stop()
+
+        self.status = 'normal'
+
 
     @commands.command()
     async def stop(self, ctx: commands.Context) -> None:
@@ -454,14 +496,7 @@ class Game(*game_cogs):
             return await ctx.send(f"**{author.mention}, I'm not even playing yet!**")
 
         if self.player.id == author.id or await utils.is_allowed([]).predicate(ctx) or await utils.is_allowed_members([647452832852869120]).predicate(ctx):
-            await self.reset_game_status()
-            guild = ctx.message.guild
-            voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=guild)
-            if voice_client and voice_client.is_playing():
-                self.status = 'stop'
-                voice_client.stop()
-
-            self.status = 'normal'
+            await self.stop_functionalities(ctx.guild)
             await ctx.send("**Session ended!**")
         else:
             return await ctx.send(f"{author.mention}, you're not the one who's playing, nor is a staff member")
@@ -597,7 +632,7 @@ class Game(*game_cogs):
         audio_source = discord.FFmpegPCMAudio(audio)
         if not voice_client.is_playing():
             if not func:
-                voice_client.play(audio_source, after=lambda e: print('finished'))
+                voice_client.play(audio_source)
             else:
                 voice_client.play(audio_source, after=lambda e: self.client.loop.create_task(func()))
 

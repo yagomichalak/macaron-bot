@@ -25,9 +25,10 @@ class AudioFilesTable(commands.Cog):
         await mycursor.execute("""
             CREATE TABLE AudioFiles (
                 user_id BIGINT NOT NULL,
-                file_path VARCHAR(100),
+                file_name VARCHAR(100),
+                difficulty ENUM('A1', 'A2', 'B1', 'B2', 'C1-C2'),
                 audio_ts BIGINT NOT NULL,
-                PRIMARY KEY(user_id, file_path)
+                PRIMARY KEY(user_id, file_name, difficulty)
             )""")
         await db.commit()
         await mycursor.close()
@@ -76,52 +77,71 @@ class AudioFilesTable(commands.Cog):
         else:
             return False
 
-    async def insert_audio_file(self, user_id: int, file_path: str, current_ts: int) -> None:
+    async def insert_audio_file(self, user_id: int, file_name: str, difficulty: str, current_ts: int) -> None:
         """ Inserts an AudioFile into the database.
         :param user_id: The user ID.
-        :param file_path: The file path.
+        :param file_name: The file name.
+        :param difficulty: The difficulty of the audio.
         :param current_ts: The current timestamp. """
 
         mycursor, db = await the_database()
         await mycursor.execute("""
             INSERT INTO AudioFiles (
-                user_id, file_path, audio_ts
-            ) VALUES (%s, %s, %s)
-        """, (user_id, file_path, current_ts))
+                user_id, file_name, difficulty, audio_ts
+            ) VALUES (%s, %s, %s, %s)
+        """, (user_id, file_name, difficulty, current_ts))
         await db.commit()
         await mycursor.close()
 
-    async def get_audio_file(self, user_id: int, file_path: str) -> List[Union[int, str]]:
+    async def get_audio_file(self, user_id: int, file_name: str, difficulty: str) -> List[Union[int, str]]:
         """ Gets an AudioFile from a user from the database.
         :param user_id: The user ID.
-        :param file_path: The file path. """
+        :param file_name: The file name.
+        :param difficulty: The difficulty of the audio. """
 
         mycursor, _ = await the_database()
-        await mycursor.execute("SELECT * FROM AudioFiles WHERE user_id = %s AND file_path = %s", (user_id, file_path))
+        await mycursor.execute("""
+            SELECT * FROM AudioFiles WHERE user_id = %s AND file_name = %s AND difficulty = %s
+            """, (user_id, file_name, difficulty))
         audio_file = await mycursor.fetchone()
         await mycursor.close()
         return audio_file
 
-    async def get_audio_files(self, user_id: int) -> List[List[Union[int, str]]]:
+    async def get_audio_files(self, user_id: int, difficulty: str) -> List[List[Union[int, str]]]:
         """ Gets all AudioFile from a user from the database.
-        :param user_id: The user ID. """
+        :param user_id: The user ID.
+        :param difficulty: The difficulty of the audio. """
 
         mycursor, _ = await the_database()
-        await mycursor.execute("SELECT * FROM AudioFiles WHERE user_id = %s", (user_id,))
+        await mycursor.execute("SELECT * FROM AudioFiles WHERE user_id = %s AND difficulty = %s", (user_id, difficulty))
         audio_files = await mycursor.fetchall()
         await mycursor.close()
         return audio_files
 
-    async def update_audio_file(self, user_id: int, file_path: str, current_ts: int) -> None:
+    async def get_reproduced_audio_files(self, user_id: int, difficulty: str, current_ts: int) -> List[str]:
+        """ Gets all reproduced audios from the user.
+        :param user_id: The user ID.
+        :param difficulty: The difficulty of the audios. """
+
+        mycursor, _ = await the_database()
+        await mycursor.execute("""
+            SELECT file_name, audio_ts FROM AudioFiles WHERE user_id = %s AND difficulty = %s
+        """, (user_id, difficulty))
+        reproduced_audios = await mycursor.fetchall()
+        await mycursor.close()
+        return reproduced_audios
+
+    async def update_audio_file(self, user_id: int, file_name: str, difficulty: str, current_ts: int) -> None:
         """ Updates an AudioFile's timestamp the database.
         :param user_id: The user ID.
-        :param file_path: The file path.
+        :param file_name: The file name.
+        :param difficulty: The difficulty of the audio.
         :param current_ts: The new timestamp. """
 
         mycursor, db = await the_database()
         await mycursor.execute("""
             UPDATE AudioFiles SET audio_ts = %s
-            WHERE user_id = %s AND file_path = %s
-        """, (current_ts, user_id, file_path))
+            WHERE user_id = %s AND file_name = %s AND difficulty = %s
+        """, (current_ts, user_id, file_name, difficulty))
         await db.commit()
         await mycursor.close()
