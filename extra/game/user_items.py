@@ -150,7 +150,7 @@ class RegisteredItemsTable(commands.Cog):
 
         mycursor, _ = await the_database()
 
-        await mycursor.execute("SELECT * FROM RegisteredItems ORDER BY item_price DESC")
+        await mycursor.execute("SELECT * FROM RegisteredItems ORDER BY item_price ASC")
         registered_items = await mycursor.fetchall()
         await mycursor.close()
 
