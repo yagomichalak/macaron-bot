@@ -437,7 +437,7 @@ class Game(*game_cogs):
                     await self.reset_game_status()
             else:
                 await self.txt.send(f"**You lost the game, {self.player.mention}!** (0 ❤️)")
-                await self.update_macaron_profile(self.player.id, games_played=1, last_time_played=current_ts)
+                await self.update_macaron_profile_crumbs(self.player.id, games_played=1, last_time_played=current_ts)
                 await self.reset_game_status()
 
     async def get_answer_text(self, text_path: str) -> str:
@@ -518,9 +518,9 @@ class Game(*game_cogs):
         money_to_add = random.randint(m_range_x, m_range_y)
 
         if await self.get_macaron_profile(player.id):
-            await self.update_macaron_profile(player.id, money=money_to_add, games_played=1, last_time_played=current_ts)
+            await self.update_macaron_profile_crumbs(player.id, crumbs=money_to_add, games_played=1, last_time_played=current_ts)
         else:
-            await self.insert_macaron_profile(player.id, money=money_to_add, games_played=1, last_time_played=current_ts)
+            await self.insert_macaron_profile(player.id, crumbs=money_to_add, games_played=1, last_time_played=current_ts)
 
         return money_to_add
 

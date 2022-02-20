@@ -856,7 +856,7 @@ class UserItemsSystem(commands.Cog):
             if not set([mr.id for mr in member.roles]) & set(list(map(lambda er: er[0], exclusive_roles))):
                 return await ctx.send(f"**You don't have any of the required roles to buy this item, {member.mention}!**")
 
-        await self.update_user_money(member.id, -regitem[3])
+        await self.update_user_crumbs(member.id, -regitem[3])
         await self.insert_user_item(member.id, regitem[2], regitem[1], regitem[0])
         return await ctx.send(f"**You just bought `{regitem[2].title()}`, {member.name}!**")
 
@@ -1011,7 +1011,7 @@ class UserItemsSystem(commands.Cog):
         if amount is None:
             return await ctx.send(f"**Please, inform an amount of crumbs to give, {author.mention}!**")
     
-        await self.update_user_money(member.id, amount)
+        await self.update_user_crumbs(member.id, amount)
         await ctx.send(f"**Added `{amount}` {self.crumbs_emoji} to {member.mention}!**")
 
     @slash_command(name="hide", guild_ids=guild_ids)

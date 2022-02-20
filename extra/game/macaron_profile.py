@@ -27,6 +27,7 @@ class MacaronProfileTable(commands.Cog):
                 money BIGINT DEFAULT 0,
                 games_played INT DEFAULT 0,
                 last_time_played BIGINT DEFAULT NULL,
+                croutons BIGINT DEFAULT 0,
                 PRIMARY KEY(user_id)
             )
         """)
@@ -77,19 +78,20 @@ class MacaronProfileTable(commands.Cog):
         else:
             return False
 
-    async def insert_macaron_profile(self, user_id: int, money: int = 0, games_played: int = 0, last_time_played: int = None) -> None:
+    async def insert_macaron_profile(self, user_id: int, crumbs: int = 0, games_played: int = 0, last_time_played: int = None, croutons: int = 0) -> None:
         """ Inserts a user into the MacaronProfile table.
         :param user_id: The ID of the user to insert.
-        :param money: The initial amount of money.
+        :param crumbs: The initial amount of money. (crumbs)
         :param games_played: The initial amount of games played.
-        :param last_time_played: The initial time for the last time the user played the game. """
+        :param last_time_played: The initial time for the last time the user played the game.
+        :param croutons: The initial amount of money. (croutons) """
 
         mycursor, db = await the_database()
         await mycursor.execute("""
             INSERT INTO MacaronProfile (
-                user_id, money, games_played, last_time_played
-            ) VALUES (%s, %s, %s, %s)
-        """, (user_id, money, games_played, last_time_played))
+                user_id, money, games_played, last_time_played, croutons
+            ) VALUES (%s, %s, %s, %s, %s)
+        """, (user_id, crumbs, games_played, last_time_played, croutons))
         await db.commit()
         await mycursor.close()
 
@@ -103,13 +105,23 @@ class MacaronProfileTable(commands.Cog):
         await mycursor.close()
         return profile
 
-    async def update_user_money(self, user_id: int, increment: Optional[int] = 0) -> None:
-        """ Updates the user's money balance.
+    async def update_user_crumbs(self, user_id: int, increment: Optional[int] = 0) -> None:
+        """ Updates the user's money balance. (crumbs)
         :param user_id: The ID of the user to update.
         :param increment: The increment value. [Optional][Default = 0] """
 
         mycursor, db = await the_database()
         await mycursor.execute("UPDATE MacaronProfile SET money = money + %s WHERE user_id = %s", (increment, user_id))
+        await db.commit()
+        await mycursor.close()
+
+    async def update_user_croutons(self, user_id: int, increment: Optional[int] = 0) -> None:
+        """ Updates the user's money balance. (croutons)
+        :param user_id: The ID of the user to update.
+        :param increment: The increment value. [Optional][Default = 0] """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("UPDATE MacaronProfile SET croutons = croutons + %s WHERE user_id = %s", (increment, user_id))
         await db.commit()
         await mycursor.close()
 
@@ -133,33 +145,70 @@ class MacaronProfileTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
-    async def update_macaron_profile(self, user_id: int, 
-        money: Optional[int] = None, games_played: Optional[int] = None, last_time_played: Optional[int] = None) -> None:
+    async def update_macaron_profile_crumbs(self, user_id: int, 
+        crumbs: Optional[int] = None, games_played: Optional[int] = None, last_time_played: Optional[int] = None) -> None:
         """ Updates the user status.
         :param user_id: The ID of the user to update.
-        :param money: The increment value for the money field.
+        :param crumbs: The increment value for the money field. (crumbs)
         :param games_played: The icnrement value for the games played field.
         :param last_time_played: The current timestamp. """
 
         mycursor, db = await the_database()
 
-        if money and games_played and last_time_played:
+        if crumbs and games_played and last_time_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET money = money + %s, games_played = games_played + %s,
                 last_time_played = %s WHERE user_id = %s
-                """, (money, games_played, last_time_played, user_id))
+                """, (crumbs, games_played, last_time_played, user_id))
 
-        elif money and games_played:
+        elif crumbs and games_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET money = money + %s, 
                 games_played = games_played + %s WHERE user_id = %s
-                """, (money, games_played, user_id))
+                """, (crumbs, games_played, user_id))
         
-        elif money and last_time_played:
+        elif crumbs and last_time_played:
             await mycursor.execute("""
                 UPDATE MacaronProfile SET money = money + %s, 
                 last_time_played = %s WHERE user_id = %s
-                """, (money, last_time_played, user_id))
+                """, (crumbs, last_time_played, user_id))
+
+        elif games_played and last_time_played:
+            await mycursor.execute("""
+                UPDATE MacaronProfile SET games_played = games_played + %s, 
+                last_time_played = %s WHERE user_id = %s
+                """, (games_played, last_time_played, user_id))
+
+        await db.commit()
+        await mycursor.close()
+
+    async def update_macaron_profile_croutons(self, user_id: int, 
+        croutons: Optional[int] = None, games_played: Optional[int] = None, last_time_played: Optional[int] = None) -> None:
+        """ Updates the user status.
+        :param user_id: The ID of the user to update.
+        :param croutons: The increment value for the money field. (croutons)
+        :param games_played: The icnrement value for the games played field.
+        :param last_time_played: The current timestamp. """
+
+        mycursor, db = await the_database()
+
+        if croutons and games_played and last_time_played:
+            await mycursor.execute("""
+                UPDATE MacaronProfile SET croutons = croutons + %s, games_played = games_played + %s,
+                last_time_played = %s WHERE user_id = %s
+                """, (croutons, games_played, last_time_played, user_id))
+
+        elif croutons and games_played:
+            await mycursor.execute("""
+                UPDATE MacaronProfile SET croutons = croutons + %s, 
+                games_played = games_played + %s WHERE user_id = %s
+                """, (croutons, games_played, user_id))
+        
+        elif croutons and last_time_played:
+            await mycursor.execute("""
+                UPDATE MacaronProfile SET croutons = croutons + %s, 
+                last_time_played = %s WHERE user_id = %s
+                """, (croutons, last_time_played, user_id))
 
         elif games_played and last_time_played:
             await mycursor.execute("""
