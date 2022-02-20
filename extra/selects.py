@@ -15,7 +15,7 @@ class ChangeItemCategoryMenuSelect(discord.ui.Select):
         self.registered_items = registered_items
         self.item_category: str = 'All'
         self.crumbs_emoji: str = '<:crumbs:940086555224211486>'
-        self.croutons_emoji: str = '🍘'
+        self.croutons_emoji: str = '<:croutons:945013460041891891>'
     
     async def callback(self, interaction: discord.Interaction):
         await interaction.response.defer()

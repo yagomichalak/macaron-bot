@@ -52,7 +52,7 @@ class Game(*game_cogs):
         self.session_id: str = None
 
         self.crumbs_emoji: str = '<:crumbs:940086555224211486>'
-        self.croutons_emoji: str = '🍘'
+        self.croutons_emoji: str = '<:croutons:945013460041891891>'
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -265,7 +265,17 @@ class Game(*game_cogs):
             # Gets a random language audio
             path, difficulty_mode, audio_folder, fail = self.get_random_audio(raudio_files, current_ts)
             if fail:
-                await self.txt.send(f"**We ran out of audios for you, come back in `24h`, {self.player.mention}!**")
+                await self.txt.send(
+                    embed=discord.Embed(
+                        description=f"**We ran out of audios for you, come back in `24h`, {self.player.mention}!**",
+                        color=discord.Color.orange()
+                ))
+                if self.right_answers >= 1:
+                    crumbs = await self.reward_user()
+                    await self.txt.send(f"""
+                        You've got `{crumbs}` crumbs {self.crumbs_emoji}!
+                        ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**"""
+                    )
                 return await self.stop_functionalities(self.player.guild)
 
             # Plays the song
@@ -520,7 +530,7 @@ class Game(*game_cogs):
         multipliers: Dict[str, Tuple[int, int]] = {
             'A1': (1, 3), 'A2': (3, 5),
             'B1': (5, 8), 'B2':  (8, 10),
-            'C1': (10, 12), 'C2': (10, 12),
+            'C1-C2': (10, 12),
         }
 
         m_range_x, m_range_y = multipliers.get(difficulty.upper())
