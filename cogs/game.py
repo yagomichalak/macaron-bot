@@ -42,6 +42,7 @@ class Game(*game_cogs):
         self.difficulty: str = None
         self.status: str = 'normal'
         self.txt: discord.TextChannel = None
+        self.vc: discord.VoiceChannel = None
         self.reproduced_audios: List[str] = []
         self.round = 0
         self.lives: int = 3
@@ -60,6 +61,7 @@ class Game(*game_cogs):
         # Gets the game's main text channel
         guild = self.client.get_guild(server_id)
         self.txt = discord.utils.get(guild.text_channels, id=int(os.getenv('GAME_TEXT_CHANNEL_ID')))
+        self.vc = discord.utils.get(guild.voice_channels, id=int(os.getenv('GAME_VOICE_CHANNEL_ID')))
 
         print('Game cog is ready!')
 
@@ -200,6 +202,9 @@ class Game(*game_cogs):
         if not member.voice:
             return await ctx.respond(f"**You need to be in a Voice Channel to run this command, {member.mention}!**")
 
+        if member.voice.channel.id != self.vc.id:
+            return await ctx.respond(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
+
         self.player = member
         self.difficulty = difficulty
         self.answer = ctx.respond
@@ -222,6 +227,9 @@ class Game(*game_cogs):
         
         if not member.voice:
             return await ctx.send(f"**You need to be in a Voice Channel to run this command, {member.mention}!**")
+
+        if member.voice.channel.id != self.vc.id:
+            return await ctx.respond(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
         self.player = member
         self.difficulty = difficulty
