@@ -232,7 +232,7 @@ class Game(*game_cogs):
             return await ctx.send(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
         self.player = member
-        self.difficulty = difficulty
+        self.difficulty = difficulty.upper()
         self.answer = ctx.send
         self.session_id = self.generate_session_id()
         await self._play_command_callback()
@@ -347,13 +347,12 @@ class Game(*game_cogs):
             )
         )
 
-        path = './resources/Audio Files'
+        root_path = './resources/Audio Files'
 
         difficulty: str = self.difficulty
-        difficulty_mode: str = difficulty
 
         all_difficulties = os.listdir(path)
-        all_audio_folders = os.listdir(f"{path}/{difficulty_mode}")
+        all_audio_folders = os.listdir(f"{root_path}/{difficulty}")
 
         tries: int = 0
         laudios: int = len(all_difficulties)
@@ -362,18 +361,16 @@ class Game(*game_cogs):
             tries += 1
             time.sleep(0.3)
             try:
-                if not difficulty:
-                    difficulty_mode = random.choice(all_difficulties)
 
                 audio_folder = random.choice(all_audio_folders)
                 all_audio_folders.remove(audio_folder)
-                path = f"{path}/{difficulty_mode}/{audio_folder}"
+                path = f"{root_path}/{difficulty}/{audio_folder}"
 
                 # self.reproduced_audios.append(str(audio_folder))
-                # return path, difficulty_mode, audio_folder
+                # return path, difficulty, audio_folder
                 if not str(audio_folder) in self.reproduced_audios and str(audio_folder) not in on_cooldown_audios:
                     self.reproduced_audios.append(str(audio_folder))
-                    return path, difficulty_mode, audio_folder, False
+                    return path, difficulty, audio_folder, False
                 else:
                     continue
             except Exception:
