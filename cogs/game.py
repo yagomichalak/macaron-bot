@@ -351,7 +351,7 @@ class Game(*game_cogs):
 
         difficulty: str = self.difficulty
 
-        all_difficulties = os.listdir(path)
+        all_difficulties = os.listdir(root_path)
         all_audio_folders = os.listdir(f"{root_path}/{difficulty}")
 
         tries: int = 0
