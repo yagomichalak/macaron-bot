@@ -5,7 +5,7 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-from extra.customerrors import CommandNotReady
+from extra.customerrors import CommandNotReady, NotInGameTextChannelError
 
 client = commands.Bot(command_prefix='m!', intents=discord.Intents.all(), help_command=None, case_insensitive=True)
 
@@ -27,7 +27,10 @@ async def on_command_error(ctx, error) -> None:
         await ctx.send(error)
 
     elif isinstance(error, CommandNotReady):
-        await ctx.respond(error)
+        await ctx.send(f"**{error}**")
+
+    elif isinstance(error, NotInGameTextChannelError):
+        await ctx.send(f"**{error}**")
 
     elif isinstance(error, commands.MissingAnyRole):
         role_names = [f"**{str(discord.utils.get(ctx.guild.roles, id=role_id))}**" for role_id in error.missing_roles]
@@ -67,7 +70,10 @@ async def on_application_command_error(ctx, error) -> None:
         await ctx.respond(error)
 
     elif isinstance(error, CommandNotReady):
-        await ctx.respond(error)
+        await ctx.respond(f"**{error}**")
+
+    elif isinstance(error, NotInGameTextChannelError):
+        await ctx.respond(f"**{error}**")
 
     elif isinstance(error, commands.errors.CheckAnyFailure):
         await ctx.respond("**You can't do that!**")

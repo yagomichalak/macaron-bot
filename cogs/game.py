@@ -11,6 +11,7 @@ import time
 
 from external_cons import the_drive
 from extra import utils
+from extra.customerrors import NotInGameTextChannelError
 from extra.views import ReplayAudioView
 from extra.game.game import GameSystem
 from extra.game.macaron_profile import MacaronProfileTable
@@ -65,6 +66,20 @@ class Game(*game_cogs):
         self.vc = discord.utils.get(guild.voice_channels, id=int(os.getenv('GAME_VOICE_CHANNEL_ID')))
 
         print('Game cog is ready!')
+
+    # Checkers
+    def is_in_game_txt() -> bool:
+        """ Checks whether the user is running a command in the
+        game's Text Channel. """
+
+        async def real_check(ctx: commands.Context) -> bool:
+            """ Checks it. """
+            if ctx.message.channel.id == ctx.cog.txt.id:
+                return True
+
+            raise NotInGameTextChannelError()
+
+        return commands.check(real_check)
 
     @commands.command()
     @commands.is_owner()
@@ -186,6 +201,7 @@ class Game(*game_cogs):
                     await self.download_recursively(drive, download_path, new_category, file['id'])
 
     @slash_command(name="play", guild_ids=guild_ids)
+    @is_in_game_txt()
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
             'A1', 'A2', 'B1', 'B2', 'C1-C2'], required=False, default='A1')) -> None:
@@ -214,6 +230,7 @@ class Game(*game_cogs):
 
     @commands.command(name="play")
     @commands.cooldown(1, 5, commands.BucketType.user)
+    @is_in_game_txt()
     async def _play_command(self, ctx, difficulty: str = 'A1') -> None:
         """ Plays the game.
         :param difficulty: The difficulty mode in which to play the game. [Default = A1] """
@@ -489,6 +506,7 @@ class Game(*game_cogs):
         await self.stop_audio(guild)
 
     @commands.command()
+    @is_in_game_txt()
     async def stop(self, ctx: commands.Context) -> None:
         """ Stops the game. """
 
@@ -531,6 +549,7 @@ class Game(*game_cogs):
 
     @slash_command(name="profile", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
+    @is_in_game_txt()
     async def _profile_slash_command(self, ctx,
         member: Option(discord.Member, name="member", description="The member to check.", required=False)) -> None:
         """ Checks someone's profile. """
@@ -543,6 +562,7 @@ class Game(*game_cogs):
 
     @commands.command(name="profile")
     @commands.cooldown(1, 5, commands.BucketType.user)
+    @is_in_game_txt()
     async def _profile_command(self, ctx, member: Optional[discord.Member] = None) -> None:
         """ Checks someone's profile.
         :param member: The member to check. [Optional][Default = You] """
@@ -584,6 +604,7 @@ class Game(*game_cogs):
         await answer(embed=embed)
 
     @slash_command(name="samples", guild_ids=guild_ids)
+    @is_in_game_txt()
     async def _samples_slash_command(self, ctx: discord.ApplicationContext) -> None:
         """ Shows how many audio samples and languages we currently have in The Language Jungle game. """
 
@@ -593,6 +614,7 @@ class Game(*game_cogs):
 
     @commands.command(name="samples", aliases=['audios', 'smpls', 'langs'])
     @commands.cooldown(1, 5, commands.BucketType.user)
+    @is_in_game_txt()
     async def _samples_command(self, ctx: commands.Context) -> None:
         """ Shows how many audio samples and languages we currently have in The Language Jungle game. """
 
