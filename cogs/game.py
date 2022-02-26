@@ -8,11 +8,10 @@ import asyncio
 import random
 import shutil
 import time
-import string
 
-from fuzzywuzzy import fuzz
 from external_cons import the_drive
 from extra import utils
+from extra.game.game import GameSystem
 from extra.game.macaron_profile import MacaronProfileTable
 from extra.game.user_items import (
     RegisteredItemsTable, RegisteredItemsSystem, UserItemsTable, 
@@ -26,7 +25,7 @@ guild_ids: List[int] = [server_id]
 game_cogs: List[commands.Cog] = [
     MacaronProfileTable, RegisteredItemsTable, RegisteredItemsSystem,
     UserItemsTable, UserItemsSystem, HiddenItemCategoryTable,
-    ExclusiveItemRoleTable, AudioFilesTable
+    ExclusiveItemRoleTable, AudioFilesTable, GameSystem
 ]
 
 class Game(*game_cogs):
@@ -237,7 +236,6 @@ class Game(*game_cogs):
         self.session_id = self.generate_session_id()
         await self._play_command_callback()
 
-
     async def _play_command_callback(self) -> None:
         """ Callback for the game's play command. """
 
@@ -319,22 +317,6 @@ class Game(*game_cogs):
         self.wrong_answers = 0
         self.answer = None
         self.session_id = None
-
-    async def compare_answers(self, player_answer: str, real_answer: str) -> int:
-        """ Compares the player answer with the actual answer, and gives an
-        accuracy percentage value.
-        :param player: The player answer:
-        :param real_answer: The real answer. """
-
-        variants: Tuple[str] = ('.', ';', ':', ',', '!', '?')
-
-        if player_answer.endswith(variants):
-            player_answer = player_answer[:-1]
-
-        if real_answer.endswith(variants):
-            real_answer = real_answer[:-1]
-
-        return fuzz.ratio(player_answer.lower(), real_answer.lower())
 
     def get_random_audio(self, raudio_files: List[str], current_ts: int) -> List[Union[str, bool, None]]:
         """ Gets a random audio.
@@ -466,27 +448,6 @@ class Game(*game_cogs):
         except:
             pass
         return text_source.strip()
-
-    def generate_session_id(self, length: Optional[int] = 18) -> str:
-        """ Generates a session ID.
-        :param length: The length of the session ID. [Default = 18] """
-
-        # Defines data
-        lower = string.ascii_lowercase
-        upper = string.ascii_uppercase
-        num = string.digits
-        symbols = string.punctuation
-
-        # Combines the data
-        all = lower + upper + num + symbols
-
-        # Uses random 
-        temp = random.sample(all,length)
-
-        # Create the session ID 
-        session_id = "".join(temp)
-        return session_id
-
     
     async def stop_functionalities(self, guild: discord.Guild) -> None:
         """ Stops the functionalities of the game.
@@ -499,7 +460,6 @@ class Game(*game_cogs):
             voice_client.stop()
 
         self.status = 'normal'
-
 
     @commands.command()
     async def stop(self, ctx: commands.Context) -> None:
