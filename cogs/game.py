@@ -74,8 +74,12 @@ class Game(*game_cogs):
 
         async def real_check(ctx: commands.Context) -> bool:
             """ Checks it. """
-            if ctx.message.channel.id == ctx.cog.txt.id:
-                return True
+            if isinstance(ctx, commands.Context):
+                if ctx.message.channel.id == ctx.cog.txt.id:
+                    return True
+            else:
+                if ctx.channel.id == ctx.cog.txt.id:
+                    return True
 
             raise NotInGameTextChannelError()
 
@@ -204,14 +208,11 @@ class Game(*game_cogs):
     @is_in_game_txt()
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
-            'A1', 'A2', 'B1', 'B2', 'C1-C2'], required=False, default='A1')) -> None:
+            'A1', 'A2', 'B1', 'B2', 'C1-C2'], required=True)) -> None:
         """ Plays the game. """
 
         member: discord.Member = ctx.author
         await ctx.defer()
-
-        if difficulty.upper() not in self.difficulty_modes:
-            return await ctx.respond(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if self.player:
             return await ctx.respond(f"**There's already someone playing with the bot, {member.mention}!**")
@@ -231,11 +232,13 @@ class Game(*game_cogs):
     @commands.command(name="play")
     @commands.cooldown(1, 5, commands.BucketType.user)
     @is_in_game_txt()
-    async def _play_command(self, ctx, difficulty: str = 'A1') -> None:
+    async def _play_command(self, ctx, difficulty: str = None) -> None:
         """ Plays the game.
         :param difficulty: The difficulty mode in which to play the game. [Default = A1] """
 
         member: discord.Member = ctx.author
+        if not difficulty:
+            return await ctx.send(f"**Please inform a difficulty mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if difficulty.upper() not in self.difficulty_modes:
             return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
