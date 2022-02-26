@@ -11,6 +11,7 @@ import time
 
 from external_cons import the_drive
 from extra import utils
+from extra.views import ReplayAudioView
 from extra.game.game import GameSystem
 from extra.game.macaron_profile import MacaronProfileTable
 from extra.game.user_items import (
@@ -42,6 +43,7 @@ class Game(*game_cogs):
         self.status: str = 'normal'
         self.txt: discord.TextChannel = None
         self.vc: discord.VoiceChannel = None
+        self.audio_path: str = None
         self.reproduced_audios: List[str] = []
         self.round = 0
         self.lives: int = 3
@@ -277,7 +279,8 @@ class Game(*game_cogs):
 
             # Plays the song
             if not voice_client.is_playing():
-                audio_source = discord.FFmpegPCMAudio(f"{path}/audio.mp3")
+                self.audio_path = f"{path}/audio.mp3"
+                audio_source = discord.FFmpegPCMAudio(self.audio_path)
                 text_source: str = await self.get_answer_text(f"{path}/answer.txt")
                 dialect_source: str = await self.get_answer_text(f"{path}/dialect.txt")
 
@@ -310,6 +313,7 @@ class Game(*game_cogs):
         self.mode = None
         self.difficulty = None
         self.status = 'normal'
+        self.audio_path = None
         self.reproduced_audios = []
         self.round = 0
         self.lives = 3
@@ -317,6 +321,16 @@ class Game(*game_cogs):
         self.wrong_answers = 0
         self.answer = None
         self.session_id = None
+    
+    async def stop_audio(self, guild: discord.Guild) -> None:
+        """ Stops playing an audio.
+        :param guild: The server. """
+
+        voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=guild)
+        if voice_client and voice_client.is_playing():
+            self.status = 'stop'
+            voice_client.stop()
+        self.status = 'normal'
 
     def get_random_audio(self, raudio_files: List[str], current_ts: int) -> List[Union[str, bool, None]]:
         """ Gets a random audio.
@@ -374,7 +388,13 @@ class Game(*game_cogs):
         if not self.player or self.session_id != session_id:
             return
 
-        await self.txt.send(f"🔰**`Answer!` ({self.player.mention})**🔰 ")
+        view = ReplayAudioView(self.client)
+        await self.txt.send(
+            embed=discord.Embed(
+                description=f"🔰**`Answer!` ({self.player.mention})**🔰 ",
+                color=discord.Color.green()),
+            view=view
+        )
             
         def check(m):
             if m.author.id == self.player.id and m.channel.id == self.txt.id:
@@ -387,11 +407,19 @@ class Game(*game_cogs):
         try:
             answer = await self.client.wait_for('message', timeout=30, check=check)
         except asyncio.TimeoutError:
+            try: view.stop()
+            except: pass
+
+            await self.stop_audio(self.vc.guild)
             await self.txt.send(f"**{self.player.mention}, you took too long to answer! (-1 ❤️)**")
             self.wrong_answers += 1
             self.lives -= 1
-            await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
+            await self.audio('resources/SFX/wrong_answer.mp3', self.vc)
         else:
+            try: view.stop()
+            except: pass
+
+            await self.stop_audio(self.vc.guild)
             answer = answer.content
             if not answer:
                 return
@@ -400,7 +428,7 @@ class Game(*game_cogs):
             if accuracy >= 90:
                 await self.txt.send(f"✅ You got it right, {self.player.mention}!\n**The answer was:** {text_source}")
                 self.right_answers += 1
-                await self.audio('resources/SFX/right_answer.mp3', self.txt)
+                await self.audio('resources/SFX/right_answer.mp3', self.vc)
 
             # Otherwise it's a wrong answer
             else:
@@ -408,9 +436,12 @@ class Game(*game_cogs):
                 await self.txt.send(f"❌ You got it wrong, {self.player.mention}! ({accuracy}% accuracy)\n**Your answer:** {uanswer}\n**The answer was:** {text_source}")
                 self.wrong_answers += 1
                 self.lives -= 1
-                await self.audio('resources/SFX/wrong_answer.mp3', self.txt)
+                await self.audio('resources/SFX/wrong_answer.mp3', self.vc)
 
         finally:
+            if isinstance(answer, discord.Message):
+                answer = answer.content
+
             current_ts = await utils.get_timestamp()
             # Checks if the member has remaining lives
             if answer and answer.startswith('mb!stop'):
@@ -455,12 +486,7 @@ class Game(*game_cogs):
         :param guild: The server. """
 
         await self.reset_game_status()
-        voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=guild)
-        if voice_client and voice_client.is_playing():
-            self.status = 'stop'
-            voice_client.stop()
-
-        self.status = 'normal'
+        await self.stop_audio(guild)
 
     @commands.command()
     async def stop(self, ctx: commands.Context) -> None:
@@ -609,8 +635,8 @@ class Game(*game_cogs):
             await channel.connect()
             voice_client: discord.VoiceClient = discord.utils.get(self.client.voice_clients, guild=channel.guild)
 
-        audio_source = discord.FFmpegPCMAudio(audio)
         if not voice_client.is_playing():
+            audio_source = discord.FFmpegPCMAudio(audio)
             if not func:
                 voice_client.play(audio_source)
             else:

@@ -127,7 +127,7 @@ class GameSystem(commands.Cog):
                         new_hl.append(aw)
                         break
                 else:
-                    new_hl.append(f"__`{bw}`__")
+                    new_hl.append(f"~~`{bw}`~~")
 
             highlighted_answer_list = new_hl
 
