@@ -404,7 +404,8 @@ class Game(*game_cogs):
 
             # Otherwise it's a wrong answer
             else:
-                await self.txt.send(f"❌ You got it wrong, {self.player.mention}! ({accuracy}% accuracy)\n**The answer was:** {text_source}")
+                uanswer = self.highlight_answer(answer.split(), text_source.split())
+                await self.txt.send(f"❌ You got it wrong, {self.player.mention}! ({accuracy}% accuracy)\n**Your answer:** {uanswer}\n**The answer was:** {text_source}")
                 self.wrong_answers += 1
                 self.lives -= 1
                 await self.audio('resources/SFX/wrong_answer.mp3', self.txt)

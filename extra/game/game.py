@@ -85,6 +85,9 @@ class GameSystem(commands.Cog):
         :param user_answer: The user answer.
         :param correct_answer: The correct answer. """
 
+        # user_answer: List[str] = user_answer.split()
+        # user_answer: List[str] = correct_answer.split()
+
         lca, lua = len(correct_answer), len(user_answer)
         longest_answer_length = lca if lca > lua else lua
         highlighted_answer_list: list[str] = []
@@ -109,9 +112,9 @@ class GameSystem(commands.Cog):
             else:
                 if lca > lua:
                     if lua > indx:
-                        highlighted_answer_list.append(f"~~{user_answer[indx]}~~")
+                        highlighted_answer_list.append(f"~~`{user_answer[indx]}`~~")
                 elif lca <= lua:
-                    highlighted_answer_list.append(f"~~{user_word}~~")
+                    highlighted_answer_list.append(f"~~`{user_word}`~~")
 
         # If correct answer is longer than the user answer
         # Appends correct words from the correct answer to the highlighted answer
@@ -124,10 +127,10 @@ class GameSystem(commands.Cog):
                         new_hl.append(aw)
                         break
                 else:
-                    new_hl.append(f"~~`{bw}`~~")
+                    new_hl.append(f"__`{bw}`__")
 
             highlighted_answer_list = new_hl
 
         # Returns the new generated highlighted answer
-        return highlighted_answer_list
+        return ' '.join(highlighted_answer_list)
 
