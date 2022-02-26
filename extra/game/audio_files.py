@@ -145,3 +145,20 @@ class AudioFilesTable(commands.Cog):
         """, (current_ts, user_id, file_name, difficulty))
         await db.commit()
         await mycursor.close()
+
+    async def delete_specific_audio_files(self, user_id: int) -> None:
+        """ Deletes AudioFiles for a specific user.
+        :param user_id: The user ID. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM AudioFiles WHERE user_id = %s", (user_id,))
+        await db.commit()
+        await mycursor.close()
+
+    async def delete_audio_files(self) -> None:
+        """ Deletes all AudioFiles. """
+
+        mycursor, db = await the_database()
+        await mycursor.execute("DELETE FROM AudioFiles")
+        await db.commit()
+        await mycursor.close()

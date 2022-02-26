@@ -667,6 +667,17 @@ class Game(*game_cogs):
             else:
                 voice_client.play(audio_source, after=lambda e: self.client.loop.create_task(func()))
 
+    @commands.command()
+    @commands.has_permissions(administrator=True)
+    async def reset_audios(self, ctx, member: Optional[discord.Member] = None) -> None:
+        """ Resets the Audio Files cooldowns for a specific user.
+        :param member: The user to whom to reset the audios. [Optional][Default = You] """
+
+        if not member:
+            member = ctx.author
+
+        await self.delete_specific_audio_files(member.id)
+        await ctx.send(f"**Audio Files have been reset for {member.mention}!**")
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
