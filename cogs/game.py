@@ -275,7 +275,7 @@ class Game(*game_cogs):
 
     @commands.command(name="play")
     @commands.cooldown(1, 5, commands.BucketType.user)
-    @utils.is_allowed([*french_roles, *english_roles], throw_exc=True)
+    # @utils.is_allowed([*french_roles, *english_roles], throw_exc=True)
     @is_in_game_txt()
     async def _play_command(self, ctx, difficulty: str = None, language: str = 'French') -> None:
         """ Plays the game.
@@ -300,14 +300,14 @@ class Game(*game_cogs):
         if member.voice.channel.id != self.vc.id:
             return await ctx.send(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
-        member_role_ids: List[int] = [mr.id for mr in member.roles]
-        if language.title() == 'English':
-            if not list(set(member_role_ids) & set(self.french_roles)):
-                return await ctx.send(f"**You don't have any `French` role to play the `English` mode, {member.mention}!**")
+        # member_role_ids: List[int] = [mr.id for mr in member.roles]
+        # if language.title() == 'English':
+        #     if not list(set(member_role_ids) & set(self.french_roles)):
+        #         return await ctx.send(f"**You don't have any `French` role to play the `English` mode, {member.mention}!**")
 
-        elif language.title() == 'French':
-            if not list(set(member_role_ids) & set(self.english_roles)):
-                return await ctx.send(f"**You don't have any native `English` role to play the `French` mode, {member.mention}!**")
+        # elif language.title() == 'French':
+        #     if not list(set(member_role_ids) & set(self.english_roles)):
+        #         return await ctx.send(f"**You don't have any native `English` role to play the `French` mode, {member.mention}!**")
 
         self.player = member
         self.difficulty = difficulty.upper()
@@ -370,6 +370,7 @@ class Game(*game_cogs):
                         f"\n**Level:** {difficulty_mode}",
                     color=discord.Color.green()
                 )
+                embed.set_footer(text=f"{self.language[:2].upper()}-{audio_folder}")
                 await self.txt.send(embed=embed)
                 if str(audio_folder) in list(map(lambda raf: raf[0], raudio_files)):
                     await self.update_audio_file(self.player.id, audio_folder, self.difficulty, current_ts)
