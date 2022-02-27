@@ -650,7 +650,7 @@ class Game(*game_cogs):
 
         path = './resources/Audio Files'
         languages = [language for language in os.listdir(path)]
-        difficulties = [difficulty for language in languages for difficulty in os.lisdir(f"{path}/{language}")]
+        difficulties = [difficulty for language in languages for difficulty in os.listdir(f"{path}/{language}")]
         audios = [1 for language in languages for difficulty in difficulties for _ in os.listdir(f"{path}/{language}/{difficulty}")]
 
         current_time = await utils.get_time_now()
