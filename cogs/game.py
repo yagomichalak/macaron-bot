@@ -38,9 +38,11 @@ class Game(*game_cogs):
 
         self.client = client
         self.difficulty_modes: List[str] = ['A1', 'A2', 'B1', 'B2', 'C1-C2']
+        self.languages: List[str] = ['French', 'English']
         self.player: discord.Member = None
         self.mode: str = None
         self.difficulty: str = None
+        self.language: str = None
         self.status: str = 'normal'
         self.txt: discord.TextChannel = None
         self.vc: discord.VoiceChannel = None
@@ -208,7 +210,11 @@ class Game(*game_cogs):
     @is_in_game_txt()
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
-            'A1', 'A2', 'B1', 'B2', 'C1-C2'], required=True)) -> None:
+            'A1', 'A2', 'B1', 'B2', 'C1-C2'], required=True),
+        language: Option(str, name="language", description="The language to play the game in.", choices=[
+            'French', 'English'
+        ], default='French')
+        ) -> None:
         """ Plays the game. """
 
         member: discord.Member = ctx.author
@@ -225,6 +231,7 @@ class Game(*game_cogs):
 
         self.player = member
         self.difficulty = difficulty
+        self.language = language
         self.answer = ctx.respond
         self.session_id = self.generate_session_id()
         await self._play_command_callback()
@@ -232,7 +239,7 @@ class Game(*game_cogs):
     @commands.command(name="play")
     @commands.cooldown(1, 5, commands.BucketType.user)
     @is_in_game_txt()
-    async def _play_command(self, ctx, difficulty: str = None) -> None:
+    async def _play_command(self, ctx, difficulty: str = None, language: str = 'French') -> None:
         """ Plays the game.
         :param difficulty: The difficulty mode in which to play the game. [Default = A1] """
 
@@ -242,6 +249,9 @@ class Game(*game_cogs):
 
         if difficulty.upper() not in self.difficulty_modes:
             return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
+
+        if language.title() not in self.languages:
+            return await ctx.send(f"**Please inform a valid language, {member.mention}!\n`{', '.join(self.languages)}`**")
 
         if self.player:
             return await ctx.send(f"**There's already someone playing with the bot, {member.mention}!**")
@@ -254,6 +264,7 @@ class Game(*game_cogs):
 
         self.player = member
         self.difficulty = difficulty.upper()
+        self.language = language
         self.answer = ctx.send
         self.session_id = self.generate_session_id()
         await self._play_command_callback()
@@ -333,6 +344,7 @@ class Game(*game_cogs):
         self.mode = None
         self.difficulty = None
         self.status = 'normal'
+        self.language = None
         self.audio_path = None
         self.reproduced_audios = []
         self.round = 0
@@ -363,7 +375,7 @@ class Game(*game_cogs):
             )
         )
 
-        root_path = './resources/Audio Files'
+        root_path = f'./resources/Audio Files/{self.language}'
 
         difficulty: str = self.difficulty
 
@@ -637,14 +649,15 @@ class Game(*game_cogs):
             answer = ctx.respond
 
         path = './resources/Audio Files'
-        difficulties = [folder for folder in os.listdir(path)]
-        audios = [1 for difficulty in difficulties for _ in os.listdir(f"{path}/{difficulty}")]
+        languages = [language for language in os.listdir(path)]
+        difficulties = [difficulty for language in languages for difficulty in os.lisdir(f"{path}/{language}")]
+        audios = [1 for language in languages for difficulty in difficulties for _ in os.listdir(f"{path}/{language}/{difficulty}")]
 
         current_time = await utils.get_time_now()
 
         embed = discord.Embed(
             title="__Samples__",
-            description=f"We currently have **`{sum(audios)}`** different audio samples grouped into **`{len(difficulties)}`** different difficulties respectively.",
+            description=f"We currently have **`{sum(audios)}`** different audio samples grouped into **`{len(languages)}`** different languages respectively.",
             color=ctx.author.color,
             timestamp=current_time
         )
