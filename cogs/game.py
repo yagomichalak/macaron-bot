@@ -81,7 +81,7 @@ class Game(*game_cogs):
                 if ctx.channel.id == ctx.cog.txt.id:
                     return True
 
-            raise NotInGameTextChannelError()
+            raise NotInGameTextChannelError(message=f"You can only run this command in the bot's game Text Channel ({ctx.cog.txt.mention})!")
 
         return commands.check(real_check)
 

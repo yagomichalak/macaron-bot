@@ -9,5 +9,9 @@ class CommandNotReady(commands.CheckFailure):
 class NotInGameTextChannelError(commands.CheckFailure):
     
     message = "You can only run this command in the bot's game Text Channel!"
+
+    def __init__(self, message: str) -> None:
+        self.message = message
+        
     def __str__(self) -> str:
         return self.message
