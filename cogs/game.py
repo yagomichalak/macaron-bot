@@ -14,6 +14,7 @@ from extra import utils
 from extra.customerrors import NotInGameTextChannelError
 from extra.views import ReplayAudioView
 from extra.game.game import GameSystem
+from extra.game.round_status import RoundStatusTable
 from extra.game.macaron_profile import MacaronProfileTable
 from extra.game.user_items import (
     RegisteredItemsTable, RegisteredItemsSystem, UserItemsTable, 
@@ -27,8 +28,11 @@ guild_ids: List[int] = [server_id]
 game_cogs: List[commands.Cog] = [
     MacaronProfileTable, RegisteredItemsTable, RegisteredItemsSystem,
     UserItemsTable, UserItemsSystem, HiddenItemCategoryTable,
-    ExclusiveItemRoleTable, AudioFilesTable, GameSystem
+    ExclusiveItemRoleTable, AudioFilesTable, GameSystem,
+    RoundStatusTable
 ]
+
+# Native French role IDs
 french_roles: List[int] = [
     824667329002209280,
     933873327653670922,
@@ -41,6 +45,7 @@ french_roles: List[int] = [
     895783897487519784,
     895785379649695815,
 ]
+# Native English role IDs
 english_roles: List[int] = [
     824667349168422952,
     933878080165011476,
@@ -747,6 +752,39 @@ class Game(*game_cogs):
 
         await self.delete_specific_audio_files(member.id)
         await ctx.send(f"**Audio Files have been reset for {member.mention}!**")
+
+    @slash_command(name="wins_leaderboard", guild_ids=guild_ids)
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @utils.not_ready()
+    async def wins_leaderboard_slash_command(self, ctx) -> None:
+        """ Shows the Wins Leaderboard. """
+
+        await self.wins_leaderboard_callback(ctx)
+
+    @commands.command(name="wins_leaderboard", aliases=["leaderboard", "wl", "wlb"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    @utils.not_ready()
+    async def wins_leaderboard_command(self, ctx) -> None:
+        """ Shows the Wins Leaderboard. """
+
+        await self.wins_leaderboard_callback(ctx)
+
+    async def wins_leaderboard_callback(self, ctx: discord.PartialMessageable) -> None:
+        """ Callback for the Wins Leaderboard command. """
+
+        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
+        round_statuses = await self.get_round_statuses()
+
+        member: discord.Member = ctx.author
+        current_time = await utils.get_time_now()
+
+        embed = discord.Embed(
+            title="__Wins Leaderboard__",
+            color=member.color,
+            timestamp=current_time
+        )
+
+        await answer(embed=embed)
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
