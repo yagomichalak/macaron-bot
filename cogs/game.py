@@ -264,7 +264,7 @@ class Game(*game_cogs):
 
         self.player = member
         self.difficulty = difficulty.upper()
-        self.language = language
+        self.language = language.title()
         self.answer = ctx.send
         self.session_id = self.generate_session_id()
         await self._play_command_callback()
@@ -476,9 +476,9 @@ class Game(*game_cogs):
 
             current_ts = await utils.get_timestamp()
             # Checks if the member has remaining lives
-            if answer and answer.startswith('mb!stop'):
+            if answer and answer.startswith('m!stop'):
                 return
-                
+            
             if self.lives > 0:				
                 # Restarts the game if it's not the last round
                 if self.round < 10:
