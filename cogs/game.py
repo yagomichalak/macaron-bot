@@ -1,5 +1,5 @@
 import discord
-from discord.ext import commands
+from discord.ext import commands, menus
 from discord import Option, slash_command
 
 from typing import List, Dict, Optional, Any, Union, Tuple, Callable
@@ -13,6 +13,7 @@ from external_cons import the_drive
 from extra import utils
 from extra.customerrors import NotInGameTextChannelError
 from extra.views import ReplayAudioView
+from extra.menu import SwitchPages
 from extra.game.game import GameSystem
 from extra.game.round_status import RoundStatusTable
 from extra.game.macaron_profile import MacaronProfileTable
@@ -751,9 +752,37 @@ class Game(*game_cogs):
         await self.delete_specific_audio_files(member.id)
         await ctx.send(f"**Audio Files have been reset for {member.mention}!**")
 
+    async def make_round_status_embed(self, ctx: discord.PartialMessageable, entries, offset: int, lentries: int, kwargs) -> discord.Embed:
+        """ Makes an embedded message for the round status. """
+
+        position = kwargs.get('position')
+
+        member = ctx.author
+
+        leaderboard = discord.Embed(
+            title="__Le Salon Français' Wins Leaderboard__",
+            description="All registered users and their wins statuses.",
+            colour=ctx.author.color, timestamp=ctx.message.created_at)
+
+
+        leaderboard.description += f"\n**Your wins:** `{position[1]}` | **#**`{position[0]}`"
+        leaderboard.set_thumbnail(url=ctx.guild.icon.url)
+        leaderboard.set_author(name=ctx.author, icon_url=ctx.author.display_avatar)
+
+        # Embeds each one of the top ten users.
+        for i, sm in enumerate(entries, start=offset):
+            member = discord.utils.get(ctx.guild.members, id=sm[0])
+            leaderboard.add_field(name=f"[{i}]#", value=f"{member.mention if member else f'<@{sm[0]}>'} | Wins: `{sm[1]}`",
+                                  inline=False)
+
+        for i, v in enumerate(entries, start=offset):
+            leaderboard.set_footer(text=f"({i} of {lentries})")
+
+
+        return leaderboard
+
     @slash_command(name="wins_leaderboard", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
-    @utils.not_ready()
     async def wins_leaderboard_slash_command(self, ctx) -> None:
         """ Shows the Wins Leaderboard. """
 
@@ -761,7 +790,6 @@ class Game(*game_cogs):
 
     @commands.command(name="wins_leaderboard", aliases=["leaderboard", "wl", "wlb"])
     @commands.cooldown(1, 5, commands.BucketType.user)
-    @utils.not_ready()
     async def wins_leaderboard_command(self, ctx) -> None:
         """ Shows the Wins Leaderboard. """
 
@@ -770,19 +798,20 @@ class Game(*game_cogs):
     async def wins_leaderboard_callback(self, ctx: discord.PartialMessageable) -> None:
         """ Callback for the Wins Leaderboard command. """
 
-        answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
+        # answer: discord.PartialMessageable = ctx.send if isinstance(ctx, commands.Context) else ctx.respond
         round_statuses = await self.get_round_statuses()
 
-        member: discord.Member = ctx.author
-        current_time = await utils.get_time_now()
+        position = [[i+1, u[1]] for i, u in enumerate(round_statuses) if u[0] == ctx.author.id]
+        position = [it for subpos in position for it in subpos] if position else ['??', 0]
 
-        embed = discord.Embed(
-            title="__Wins Leaderboard__",
-            color=member.color,
-            timestamp=current_time
-        )
+        # Additional data:
+        additional = {
+            'change_embed': self.make_round_status_embed,
+            'position': position
+        }
 
-        await answer(embed=embed)
+        pages = menus.MenuPages(source=SwitchPages(round_statuses, **additional), clear_reactions_after=True)
+        await pages.start(ctx)
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
