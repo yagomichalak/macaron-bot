@@ -29,9 +29,36 @@ game_cogs: List[commands.Cog] = [
     UserItemsTable, UserItemsSystem, HiddenItemCategoryTable,
     ExclusiveItemRoleTable, AudioFilesTable, GameSystem
 ]
+french_roles: List[int] = [
+    824667329002209280,
+    933873327653670922,
+    933874570757308427,
+    933874570178490428,
+    933874567150174209,
+    933874559621402684,
+    772182729101017098,
+    895782147904913468,
+    895783897487519784,
+    895785379649695815,
+]
+english_roles: List[int] = [
+    824667349168422952,
+    933878080165011476,
+    933877674735198219,
+    933877681005670400,
+    933877682222034947,
+    933877684356927548,
+    909212571373010994,
+    909213121527312385,
+    909213451006644234,
+    909214255121842248,
+]
 
 class Game(*game_cogs):
     """ Category for the bot's main game. """
+
+    french_roles: List[int] = french_roles
+    english_roles: List[int] = english_roles
 
     def __init__(self, client: commands.Bot) -> None:
         """ Class init method. """
@@ -207,6 +234,7 @@ class Game(*game_cogs):
                     await self.download_recursively(drive, download_path, new_category, file['id'])
 
     @slash_command(name="play", guild_ids=guild_ids)
+    @utils.is_allowed([*french_roles, *english_roles], throw_exc=True)
     @is_in_game_txt()
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
@@ -229,6 +257,15 @@ class Game(*game_cogs):
         if member.voice.channel.id != self.vc.id:
             return await ctx.respond(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
+        member_role_ids: List[int] = [mr.id for mr in member.roles]
+        if language == 'English':
+            if not set(member_role_ids) & set(self.french_roles):
+                return await ctx.respond(f"**You don't have any `French` role to play the `English` mode, {member.mention}!**")
+
+        elif language == 'French':
+            if not set(member_role_ids) & set(self.english_roles):
+                return await ctx.respond(f"**You don't have any `English` role to play the `French` mode, {member.mention}!**")
+
         self.player = member
         self.difficulty = difficulty
         self.language = language
@@ -238,6 +275,7 @@ class Game(*game_cogs):
 
     @commands.command(name="play")
     @commands.cooldown(1, 5, commands.BucketType.user)
+    @utils.is_allowed([*french_roles, *english_roles], throw_exc=True)
     @is_in_game_txt()
     async def _play_command(self, ctx, difficulty: str = None, language: str = 'French') -> None:
         """ Plays the game.
@@ -261,6 +299,15 @@ class Game(*game_cogs):
 
         if member.voice.channel.id != self.vc.id:
             return await ctx.send(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
+
+        member_role_ids: List[int] = [mr.id for mr in member.roles]
+        if language.title() == 'English':
+            if not list(set(member_role_ids) & set(self.french_roles)):
+                return await ctx.send(f"**You don't have any `French` role to play the `English` mode, {member.mention}!**")
+
+        elif language.title() == 'French':
+            if not list(set(member_role_ids) & set(self.english_roles)):
+                return await ctx.send(f"**You don't have any native `English` role to play the `French` mode, {member.mention}!**")
 
         self.player = member
         self.difficulty = difficulty.upper()
@@ -429,6 +476,9 @@ class Game(*game_cogs):
         )
             
         def check(m):
+            if not self.player:
+                return False
+
             if m.author.id == self.player.id and m.channel.id == self.txt.id:
                 # Checks whether user is in the VC to answer the question
 
