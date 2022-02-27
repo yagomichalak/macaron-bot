@@ -486,6 +486,10 @@ class Game(*game_cogs):
                     await self.reset_game_status()
             else:
                 await self.txt.send(f"**You lost the game, {self.player.mention}!** (0 ❤️)")
+                crumbs = await self.reward_user()
+                await self.txt.send(f"""**
+                You've got `{crumbs}` crumbs {self.crumbs_emoji}!
+                ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
                 await self.update_macaron_profile_crumbs(self.player.id, games_played=1, last_time_played=current_ts)
                 await self.reset_game_status()
 
