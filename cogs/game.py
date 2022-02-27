@@ -763,11 +763,12 @@ class Game(*game_cogs):
         position = kwargs.get('position')
 
         member = ctx.author
+        current_time = await utils.get_time_now()
 
         leaderboard = discord.Embed(
             title="__Le Salon Français' Wins Leaderboard__",
             description="All registered users and their wins statuses.",
-            colour=ctx.author.color, timestamp=ctx.message.created_at)
+            colour=ctx.author.color, timestamp=current_time)
 
 
         leaderboard.description += f"\n**Your wins:** `{position[1]}` | **#**`{position[0]}`"
