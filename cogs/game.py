@@ -661,15 +661,18 @@ class Game(*game_cogs):
             await self.insert_macaron_profile(member.id)
             profile = await self.get_macaron_profile(member.id)
 
+        round_status = await self.get_round_status(member.id)
+
         last_time_played: str = 'Never' if not profile[3] else f"<t:{profile[3]}:R>"
         current_time = await utils.get_time_now()
 
         embed: discord.Embed = discord.Embed(
             title=f"{member}'s Profile",
-            description=f"**Crumbs:** {profile[1]} {self.crumbs_emoji}.\n" \
-                f"**Croutons:** {profile[4]} {self.croutons_emoji}.\n" \
-                f"**Games played:** {profile[2]}\n" \
-                f"**Last time played:** {last_time_played}",
+            description=f"{self.crumbs_emoji} **Crumbs:** {profile[1]} {self.crumbs_emoji}.\n" \
+                f"{self.croutons_emoji} **Croutons:** {profile[4]} {self.croutons_emoji}.\n" \
+                f"🎮 **Games played:** {profile[2]}\n" \
+                f"🥇 **Rounds won:** {round_status[1] if round_status else 0}\n" \
+                f"⏰ **Last time played:** {last_time_played}",
                 color=member.color,
                 timestamp=current_time
         )
