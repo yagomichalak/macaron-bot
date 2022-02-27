@@ -517,6 +517,7 @@ class Game(*game_cogs):
                 await self.txt.send(f"✅ You got it right, {self.player.mention}!\n**The answer was:** {text_source}")
                 self.right_answers += 1
                 await self.audio('resources/SFX/right_answer.mp3', self.vc)
+                await self.resolve_round_status(win=True)
 
             # Otherwise it's a wrong answer
             else:
@@ -525,6 +526,7 @@ class Game(*game_cogs):
                 self.wrong_answers += 1
                 self.lives -= 1
                 await self.audio('resources/SFX/wrong_answer.mp3', self.vc)
+                await self.resolve_round_status(win=False)
 
         finally:
             if isinstance(answer, discord.Message):
@@ -815,6 +817,21 @@ class Game(*game_cogs):
 
         pages = menus.MenuPages(source=SwitchPages(round_statuses, **additional), clear_reactions_after=True)
         await pages.start(ctx)
+
+    async def resolve_round_status(self, win: bool = True) -> None:
+        """ Resolves the status for a user in relation to a round in which the user either won or lost.
+        :param win: Whether the user won or lost the round. [Default = True] """
+
+        if win:
+            if await self.get_round_status(self.player.id):
+                await self.update_round_status(self.player.id, wins=1)
+            else:
+                await self.insert_round_status(self.player.id, wins=1)
+        else:
+            if await self.get_round_status(self.player.id):
+                await self.update_round_status(self.player.id, losses=1)
+            else:
+                await self.insert_round_status(self.player.id, losses=1)
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
