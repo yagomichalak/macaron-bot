@@ -366,7 +366,8 @@ class Game(*game_cogs):
                 embed = discord.Embed(
                     title=f"__`ROUND {self.round}`__",
                     description="Try to understand what is being said in the following voice message, and type your answer below." \
-                        f"\n**Language:** {dialect_source}" \
+                        f"\n**Language:** {self.language}" \
+                        f"\n**Dialect:** {dialect_source}" \
                         f"\n**Level:** {difficulty_mode}",
                     color=discord.Color.green()
                 )
