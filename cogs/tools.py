@@ -7,14 +7,23 @@ import io
 import textwrap
 import traceback
 from contextlib import redirect_stdout
+from typing import List
 
-class Tools(commands.Cog):
+from extra.tools.scheduled_events import ScheduledEventsTable, ScheduledEventsSystem
+
+tool_cogs: List[commands.Cog] = [
+    ScheduledEventsTable, ScheduledEventsSystem
+]
+
+
+class Tools(*tool_cogs):
     """ Category for tool commands. """
 
     def __init__(self, client: commands.Cog) -> None:
         """ Class init method. """
 
         self.client = client
+        self.give_monthly_crumbs.start()
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -73,7 +82,7 @@ class Tools(commands.Cog):
                     pages.append(text[last:curr])
                     last = curr
                     appd_index = curr
-            if appd_index != len(text)-1:
+            if appd_index != len(text) - 1:
                 pages.append(text[last:curr])
             return list(filter(lambda a: a != '', pages))
 
@@ -129,7 +138,7 @@ class Tools(commands.Cog):
         await ctx.send(f"**:ping_pong: Pong! {round(self.client.latency * 1000)}ms.**")
 
     @commands.command(aliases=['al', 'alias'])
-    async def aliases(self, ctx, *, cmd: str =  None):
+    async def aliases(self, ctx, *, cmd: str = None):
         """ Shows some information about commands and categories. 
         :param cmd: The command. """
 
@@ -147,6 +156,7 @@ class Tools(commands.Cog):
             return await ctx.send(embed=embed)
         else:
             await ctx.send(f"**Invalid parameter! It is neither a command nor a cog!**")
+
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """

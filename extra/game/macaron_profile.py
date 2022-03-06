@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from external_cons import the_database
-from typing import Optional, List, Union
+from typing import Optional, List, Union, Tuple
 
 class MacaronProfileTable(commands.Cog):
     """ Class for managing the MacaronProfile table. """
@@ -112,6 +112,17 @@ class MacaronProfileTable(commands.Cog):
 
         mycursor, db = await the_database()
         await mycursor.execute("UPDATE MacaronProfile SET money = money + %s WHERE user_id = %s", (increment, user_id))
+        await db.commit()
+        await mycursor.close()
+
+    async def bulk_update_user_crumbs(self, users: List[Tuple[int, int]]) -> None:
+        """ Bulk updates the users' money balance. (crumbs)
+        :param users: The users to update """
+
+        mycursor, db = await the_database()
+        await mycursor.executemany("""
+            UPDATE MacaronProfile SET money = money + %s WHERE user_id = %s
+            """, users)
         await db.commit()
         await mycursor.close()
 

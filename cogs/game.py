@@ -792,6 +792,7 @@ class Game(*game_cogs):
     async def wins_leaderboard_slash_command(self, ctx) -> None:
         """ Shows the Wins Leaderboard. """
 
+        await ctx.defer()
         await self.wins_leaderboard_callback(ctx)
 
     @commands.command(name="wins_leaderboard", aliases=["leaderboard", "wl", "wlb"])
