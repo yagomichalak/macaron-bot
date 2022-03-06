@@ -126,13 +126,12 @@ class MacaronProfileTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
-    async def bulk_update_user_croutons(self, user_id: int, increment: Optional[int] = 0) -> None:
-        """ Updates the user's money balance. (croutons)
-        :param user_id: The ID of the user to update.
-        :param increment: The increment value. [Optional][Default = 0] """
+    async def bulk_update_user_croutons(self, users) -> None:
+        """ Bulk updates the users' money balance. (croutons)
+        :param users: The users to update """
 
         mycursor, db = await the_database()
-        await mycursor.execute("UPDATE MacaronProfile SET croutons = croutons + %s WHERE user_id = %s", (increment, user_id))
+        await mycursor.execute("UPDATE MacaronProfile SET croutons = croutons + %s WHERE user_id = %s", users)
         await db.commit()
         await mycursor.close()
 
