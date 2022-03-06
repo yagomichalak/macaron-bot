@@ -126,12 +126,14 @@ class MacaronProfileTable(commands.Cog):
         await db.commit()
         await mycursor.close()
 
-    async def bulk_update_user_croutons(self, users) -> None:
+    async def bulk_update_user_croutons(self, users: List[Tuple[int, int]]) -> None:
         """ Bulk updates the users' money balance. (croutons)
         :param users: The users to update """
 
         mycursor, db = await the_database()
-        await mycursor.execute("UPDATE MacaronProfile SET croutons = croutons + %s WHERE user_id = %s", users)
+        await mycursor.executemany("""
+            UPDATE MacaronProfile SET croutons = croutons + %s WHERE user_id = %s
+            """, users)
         await db.commit()
         await mycursor.close()
 

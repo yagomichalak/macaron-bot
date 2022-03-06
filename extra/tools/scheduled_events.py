@@ -155,8 +155,8 @@ class ScheduledEventsSystem(commands.Cog):
                     members[role_id].append(member)
 
         for role_id, role_members in members.items():
-            crumbs = roles_dict[role_id]
-            users = list((crumbs, m.id) for m in role_members)
+            croutons = roles_dict[role_id]
+            users = list((croutons, m.id) for m in role_members)
 
             # Give them money
             if currency == 'Crumbs':
