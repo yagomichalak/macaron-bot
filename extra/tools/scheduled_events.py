@@ -77,7 +77,7 @@ class ScheduledEventsSystem(commands.Cog):
             # Checks whether role pings are not null
             role_pings = None if not roles else ', '.join(map(lambda r: r.mention, roles))
             # Sends message
-            await game_text_channel.send(content=role_pings, embed=embed)
+            await game_text_channel.send(content=f"Your monthly currency has been added!\n{role_pings}", embed=embed)
 
     async def reward_monthly_crumbs(self, guild: discord.Guild, roles_dict: Dict[int, int]) -> None:
         """ Rewards all Booster and Patreon roles.
