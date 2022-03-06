@@ -21,20 +21,20 @@ class ScheduledEventsSystem(commands.Cog):
 
     @tasks.loop(seconds=60)
     async def give_monthly_crumbs(self) -> None:
-        """ Checks the time for advertising Patreon. """
+        """ Checks the time for giving the monthly croutons. """
 
         current_time = await utils.get_time_now()
         current_ts = current_time.timestamp()
-        # Checks whether the Patreon advertising event exists
+        # Checks whether the event already exists
         if not await self.get_advertising_event(event_label='monthly_crumbs'):
             # If not, creates it
             return await self.insert_advertising_event(event_label='monthly_crumbs', current_ts=current_ts-2678400)
 
-        # Checks whether advertising time is due
+        # Checks whether the event time is due
         if await self.check_advertising_time(
             current_ts=int(current_ts), event_label="monthly_crumbs", ad_time=2678400):
-            print('Let us reward!')
-            # Updates time and advertises.
+            print('Let us reward crumbs!')
+            # Updates time and rewards.
             if not (game_text_channel := self.client.get_channel(game_text_channel_id)):
                 return
 
@@ -64,7 +64,7 @@ class ScheduledEventsSystem(commands.Cog):
                 text_list.append(f"**<@&{role_id}>:** `{crumbs}` crumbs;")
 
             # Rewards all roles
-            await self.reward_monthly_crumbs(guild, roles_dict)
+            await self.reward_monthly_currency(guild, roles_dict)
 
             # Makes embed
             embed = discord.Embed(
@@ -77,13 +77,72 @@ class ScheduledEventsSystem(commands.Cog):
             # Checks whether role pings are not null
             role_pings = None if not roles else ', '.join(map(lambda r: r.mention, roles))
             # Sends message
-            await game_text_channel.send(content=f"Your monthly currency has been added!\n{role_pings}", embed=embed)
+            await game_text_channel.send(content=f"Your monthly crumbs have been added!\n{role_pings}", embed=embed)
 
-    async def reward_monthly_crumbs(self, guild: discord.Guild, roles_dict: Dict[int, int]) -> None:
+    @tasks.loop(seconds=60)
+    async def give_monthly_croutons(self) -> None:
+        """ Checks the time for giving the monthly croutons. """
+
+        current_time = await utils.get_time_now()
+        current_ts = current_time.timestamp()
+        # Checks whether the event already exists
+        if not await self.get_advertising_event(event_label='monthly_croutons'):
+            # If not, creates it
+            return await self.insert_advertising_event(event_label='monthly_croutons', current_ts=current_ts-2678400)
+
+        # Checks whether event time is due
+        if await self.check_advertising_time(
+            current_ts=int(current_ts), event_label="monthly_croutons", ad_time=2678400):
+            print('Let us reward croutons!')
+            # Updates time and advertises.
+            if not (game_text_channel := self.client.get_channel(game_text_channel_id)):
+                return
+
+            guild = game_text_channel.guild
+
+            await self.update_advertising_time(event_label="monthly_croutons", current_ts=current_ts)
+
+
+            # Dictionary with all roles to which to give crumbs
+            roles_dict: Dict[int, int] = {
+                862731111339393034: 1, # Patreon 1
+                939334184076443680: 1, # Patreon 2
+                942435771116318823: 1, # Patreon 3
+                939334189684252682: 2, # Patreon 4
+            }
+
+            # Temp lists
+            text_list: List[str] = []
+            roles: List[discord.Role] = []
+
+            # Loops through all roles
+            for role_id, crumbs in roles_dict.items():
+                if role := discord.utils.get(guild.roles, id=role_id):
+                    roles.append(role)
+
+                text_list.append(f"**<@&{role_id}>:** `{crumbs}` croutons;")
+
+            # Rewards all roles
+            await self.reward_monthly_currency(guild, roles_dict, 'Croutons')
+
+            # Makes embed
+            embed = discord.Embed(
+                title="__Monthly Croutons__",
+                description='\n'.join(text_list),
+                color=discord.Color.nitro_pink(),
+                timestamp=current_time
+            )
+
+            # Checks whether role pings are not null
+            role_pings = None if not roles else ', '.join(map(lambda r: r.mention, roles))
+            # Sends message
+            await game_text_channel.send(content=f"Your monthly croutons have been added!\n{role_pings}", embed=embed)
+
+    async def reward_monthly_currency(self, guild: discord.Guild, roles_dict: Dict[int, int], currency: str = 'Crumbs') -> None:
         """ Rewards all Booster and Patreon roles.
         :param guild: The server to get the members from.
-        :param roles_dict: The dict containing the amount of crumbs to give for each role. """
-
+        :param roles_dict: The dict containing the amount of crumbs to give for each role.
+        :param currency: The currency to use. [Default = 'Crumbs'] """
 
         Game = self.client.get_cog('Game')
 
@@ -100,7 +159,11 @@ class ScheduledEventsSystem(commands.Cog):
             users = list((crumbs, m.id) for m in role_members)
 
             # Give them money
-            await Game.bulk_update_user_crumbs(users)
+            if currency == 'Crumbs':
+                await Game.bulk_update_user_crumbs(users)
+            elif currency == 'Croutons':
+                await Game.bulk_update_user_croutons(users)
+
             print(f"\t-> {len(role_members)} members rewarded for: {role_id}")
 
 

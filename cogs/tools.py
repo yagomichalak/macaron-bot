@@ -24,6 +24,7 @@ class Tools(*tool_cogs):
 
         self.client = client
         self.give_monthly_crumbs.start()
+        self.give_monthly_croutons.start()
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
