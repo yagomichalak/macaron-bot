@@ -44,19 +44,12 @@ class ScheduledEventsSystem(commands.Cog):
 
 
             # Dictionary with all roles to which to give crumbs
-            # roles_dict: Dict[int, int] = {
-            #     749238454742679634: 100, # Boosters
-            #     862731111339393034: 200, # Patreon 1
-            #     939334184076443680: 250, # Patreon 2
-            #     942435771116318823: 350, # Patreon 3
-            #     939334189684252682: 600, # Patreon 4
-            # }
             roles_dict: Dict[int, int] = {
-                950097355410124891: 100,  # Boosters
-                942121471092875344: 200,  # Patreon 1
-                942121511706300436: 250,  # Patreon 2
-                942121551166308413: 350,  # Patreon 3
-                950097297964929094: 600,  # Patreon 4
+                749238454742679634: 100, # Boosters
+                862731111339393034: 200, # Patreon 1
+                939334184076443680: 250, # Patreon 2
+                942435771116318823: 350, # Patreon 3
+                939334189684252682: 600, # Patreon 4
             }
 
             # Temp lists
