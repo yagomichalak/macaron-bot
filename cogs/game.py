@@ -22,6 +22,7 @@ from extra.game.user_items import (
     UserItemsSystem, HiddenItemCategoryTable, ExclusiveItemRoleTable
 )
 from extra.game.audio_files import AudioFilesTable
+from extra.game.user_roll_dices import UserRollDicesTable
 
 server_id: int = int(os.getenv('SERVER_ID'))
 guild_ids: List[int] = [server_id]
@@ -30,7 +31,7 @@ game_cogs: List[commands.Cog] = [
     MacaronProfileTable, RegisteredItemsTable, RegisteredItemsSystem,
     UserItemsTable, UserItemsSystem, HiddenItemCategoryTable,
     ExclusiveItemRoleTable, AudioFilesTable, GameSystem,
-    RoundStatusTable
+    RoundStatusTable, UserRollDicesTable
 ]
 
 # Native French role IDs
@@ -834,6 +835,20 @@ class Game(*game_cogs):
                 await self.update_round_status(self.player.id, losses=1)
             else:
                 await self.insert_round_status(self.player.id, losses=1)
+
+    @commands.command(aliases=["rolldice", "rd"])
+    @commands.cooldown(1, 5, commands.BucketType.user)
+    # @utils.not_ready()
+    async def roll_dice(self, ctx) -> None:
+        """ Rolls a dice to try to get a reward out of it. """
+
+        member: discord.Member = ctx.author
+        if not (user_roll_dices := await self.get_user_roll_dices(member.id)):
+            return await ctx.send(f"**You don't have any dice to roll, {member.mention}!**")
+
+        await self.update_user_roll_dices(member.id, -1)
+        await ctx.send(f"**You just ran a dice! Now you have `{len(user_roll_dices)}` more left, {member.mention}!**")
+
 
 def setup(client: commands.Bot) -> None:
     """ Cog's setup function. """
