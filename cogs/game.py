@@ -264,11 +264,11 @@ class Game(*game_cogs):
 
         member_role_ids: List[int] = [mr.id for mr in member.roles]
         if language == 'English':
-            if set(member_role_ids) & set(self.french_roles):
+            if set(member_role_ids) & set(self.english_roles):
                 return await ctx.send(f"**You cannot play the `English` mode while having a native `English` role, {member.mention}!**")
 
         elif language == 'French':
-            if set(member_role_ids) & set(self.english_roles):
+            if set(member_role_ids) & set(self.french_roles):
                 return await ctx.send(f"**You cannot play the `French` mode while having a native `French` role, {member.mention}!**")
 
         self.player = member
