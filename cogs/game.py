@@ -279,7 +279,7 @@ class Game(*game_cogs):
         await self._play_command_callback()
 
     @commands.command(name="play")
-    @commands.cooldown(1, 5, commands.BucketType.user)
+    @commands.cooldown(1, 25, commands.BucketType.user)
     @is_in_game_txt()
     async def _play_command(self, ctx, difficulty: str = None, language: str = 'French') -> None:
         """ Plays the game.
