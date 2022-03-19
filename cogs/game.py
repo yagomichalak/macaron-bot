@@ -241,6 +241,7 @@ class Game(*game_cogs):
                     await self.download_recursively(drive, download_path, new_category, file['id'])
 
     @slash_command(name="play", guild_ids=guild_ids)
+    @commands.cooldown(1, 25, commands.BucketType.user)
     @is_in_game_txt()
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
@@ -288,30 +289,37 @@ class Game(*game_cogs):
 
         member: discord.Member = ctx.author
         if not difficulty:
+            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**Please inform a difficulty mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if difficulty.upper() not in self.difficulty_modes:
+            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if language.title() not in self.languages:
             return await ctx.send(f"**Please inform a valid language, {member.mention}!\n`{', '.join(self.languages)}`**")
 
         if self.player:
+            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**There's already someone playing with the bot, {member.mention}!**")
         
         if not member.voice:
+            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**You need to be in a Voice Channel to run this command, {member.mention}!**")
 
         if member.voice.channel.id != self.vc.id:
+            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
         member_role_ids: List[int] = [mr.id for mr in member.roles]
         if language.title() == 'English':
             if list(set(member_role_ids) & set(self.english_roles)):
+                ctx.command.reset_cooldown(ctx)
                 return await ctx.send(f"**You cannot play the `English` mode while having a native `English` role, {member.mention}!**")
 
         elif language.title() == 'French':
             if list(set(member_role_ids) & set(self.french_roles)):
+                ctx.command.reset_cooldown(ctx)
                 return await ctx.send(f"**You cannot play the `French` mode while having a native `French` role, {member.mention}!**")
 
         self.player = member
@@ -358,6 +366,7 @@ class Game(*game_cogs):
                     await self.txt.send(f"""**
                     You've got `{crumbs}` crumbs {self.crumbs_emoji}!
                     ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
+                    await self.check_roll_dice()
                 return await self.stop_functionalities(self.player.guild)
 
             # Plays the song
@@ -554,6 +563,7 @@ class Game(*game_cogs):
                     await self.txt.send(f"""**
                     You've got `{crumbs}` crumbs {self.crumbs_emoji}!
                     ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
+                    await self.check_roll_dice()
                     await self.reset_game_status()
             else:
                 await self.txt.send(f"**You lost the game, {self.player.mention}!** (0 ❤️)")
@@ -562,6 +572,7 @@ class Game(*game_cogs):
                 You've got `{crumbs}` crumbs {self.crumbs_emoji}!
                 ✅ `{self.right_answers}` | ❌ `{self.wrong_answers}`**""")
                 await self.update_macaron_profile_crumbs(self.player.id, games_played=1, last_time_played=current_ts)
+                await self.check_roll_dice()
                 await self.reset_game_status()
 
     async def get_answer_text(self, text_path: str) -> str:
@@ -624,6 +635,18 @@ class Game(*game_cogs):
             await self.insert_macaron_profile(player.id, crumbs=money_to_add, games_played=1, last_time_played=current_ts)
 
         return money_to_add
+    
+    async def check_roll_dice(self) -> None:
+        """ Checks whether the user can get a roll dice. """
+
+        member = self.player
+        txt = self.txt
+        if random.random() <= 0.05:
+            if not await self.get_user_roll_dices(member.id):
+                await self.insert_user_roll_dices(member.id)
+            else:
+                await self.update_user_roll_dices(member.id, 1)
+            await txt.send(f"**You just go `1` dice to roll, {member.mention}!**")
 
     @slash_command(name="profile", guild_ids=guild_ids)
     @commands.cooldown(1, 5, commands.BucketType.user)
@@ -838,7 +861,7 @@ class Game(*game_cogs):
 
     @commands.command(aliases=["rolldice", "rd"])
     @commands.cooldown(1, 5, commands.BucketType.user)
-    # @utils.not_ready()
+    @utils.not_ready()
     async def roll_dice(self, ctx) -> None:
         """ Rolls a dice to try to get a reward out of it. """
 
