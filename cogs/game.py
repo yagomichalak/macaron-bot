@@ -241,7 +241,7 @@ class Game(*game_cogs):
                     await self.download_recursively(drive, download_path, new_category, file['id'])
 
     @slash_command(name="play", guild_ids=guild_ids)
-    @commands.cooldown(1, 25, commands.BucketType.user)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @is_in_game_txt()
     async def _play_slash_command(self, ctx, 
         difficulty: Option(str, name="difficulty", description="The difficulty mode in which to play the game. [Default = A1]", choices=[
@@ -281,7 +281,7 @@ class Game(*game_cogs):
         await self._play_command_callback()
 
     @commands.command(name="play")
-    @commands.cooldown(1, 25, commands.BucketType.user)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @is_in_game_txt()
     async def _play_command(self, ctx, difficulty: str = None, language: str = 'French') -> None:
         """ Plays the game.
@@ -289,37 +289,30 @@ class Game(*game_cogs):
 
         member: discord.Member = ctx.author
         if not difficulty:
-            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**Please inform a difficulty mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if difficulty.upper() not in self.difficulty_modes:
-            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**Please inform a valid mode, {member.mention}!\n`{', '.join(self.difficulty_modes)}`**")
 
         if language.title() not in self.languages:
             return await ctx.send(f"**Please inform a valid language, {member.mention}!\n`{', '.join(self.languages)}`**")
 
         if self.player:
-            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**There's already someone playing with the bot, {member.mention}!**")
         
         if not member.voice:
-            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**You need to be in a Voice Channel to run this command, {member.mention}!**")
 
         if member.voice.channel.id != self.vc.id:
-            ctx.command.reset_cooldown(ctx)
             return await ctx.send(f"**You need to be in the {self.vc.mention} Voice Channel to play the game, {member.mention}!**")
 
         member_role_ids: List[int] = [mr.id for mr in member.roles]
         if language.title() == 'English':
             if list(set(member_role_ids) & set(self.english_roles)):
-                ctx.command.reset_cooldown(ctx)
                 return await ctx.send(f"**You cannot play the `English` mode while having a native `English` role, {member.mention}!**")
 
         elif language.title() == 'French':
             if list(set(member_role_ids) & set(self.french_roles)):
-                ctx.command.reset_cooldown(ctx)
                 return await ctx.send(f"**You cannot play the `French` mode while having a native `French` role, {member.mention}!**")
 
         self.player = member
@@ -503,7 +496,7 @@ class Game(*game_cogs):
         answer: str = None
 
         try:
-            answer = await self.client.wait_for('message', timeout=30, check=check)
+            answer = await self.client.wait_for('message', timeout=50, check=check)
         except asyncio.TimeoutError:
             try: view.stop()
             except: pass
